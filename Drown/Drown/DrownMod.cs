@@ -8,7 +8,7 @@ using System.Security.Permissions;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.1.6")]
+    [BepInPlugin("uo.drown", "Drown", "0.1.7")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
