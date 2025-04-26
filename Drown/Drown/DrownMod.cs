@@ -1,4 +1,4 @@
-﻿using BepInEx;
+using BepInEx;
 using RainMeadow;
 using System;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Security.Permissions;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.1.5")]
+    [BepInPlugin("uo.drown", "Drown", "0.1.6")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
