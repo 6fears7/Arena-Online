@@ -27,9 +27,21 @@ namespace Drown
         [RainMeadow.RPCMethod]
         public static void Arena_OpenDen(RPCEvent rpcEvent, bool denOpen)
         {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
+            {
+                drown.openedDen = denOpen;
+                var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
+                if (game.manager.upcomingProcess != null)
+                {
+                    return;
+                }
 
-           DrownMode.openedDen = denOpen;
-
+                if (!game.GetArenaGameSession.GameTypeSetup.spearsHitPlayers)
+                {
+                    game.cameras[0].hud.PlaySound(SoundID.UI_Multiplayer_Player_Revive);
+                }
+            }
         }
+
     }
 }

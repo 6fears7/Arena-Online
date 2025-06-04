@@ -47,10 +47,6 @@
 		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\BepInEx\core\0Harmony20.dll</HintPath>
 		  <Private>False</Private>
 		</Reference>
-		<Reference Include="Assembly-CSharp">
-		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
-		  <Private>False</Private>
-		</Reference>
 		<Reference Include="BepInEx">
 		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\BepInEx\core\BepInEx.dll</HintPath>
 		  <Private>False</Private>
@@ -99,9 +95,11 @@
 		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\BepInEx\core\MonoMod.Utils.dll</HintPath>
 		  <Private>False</Private>
 		</Reference>
+		<Reference Include="Assembly-CSharp">
+		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\BepInEx\utils\PUBLIC-Assembly-CSharp.dll</HintPath>
+		</Reference>
 		<Reference Include="Rain Meadow">
-		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\RainWorld_Data\StreamingAssets\mods\rainmeadow\plugins\Rain Meadow.dll</HintPath>
-		  <Private>False</Private>
+		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\workshop\content\312520\3388224007\plugins\Rain Meadow.dll</HintPath>
 		</Reference>
 		<Reference Include="UnityEngine">
 		  <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Rain World\RainWorld_Data\Managed\UnityEngine.dll</HintPath>

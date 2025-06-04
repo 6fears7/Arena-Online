@@ -1,8 +1,5 @@
 ﻿using RainMeadow;
-using System.Text.RegularExpressions;
-using Menu;
 using System.Linq;
-using IL.LizardCosmetics;
 
 namespace Drown
 {
@@ -10,24 +7,44 @@ namespace Drown
     {
 
         public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: true);
-
+        public static bool isDrownMode(ArenaOnlineGameMode arena, out DrownMode mode)
+        {
+            mode = null;
+            if (arena.currentGameMode == Drown.value)
+            {
+                mode = (arena.registeredGameModes.FirstOrDefault(x => x.Value == Drown.value).Key as DrownMode);
+                return true;
+            }
+            return false;
+        }
 
         public bool isInStore = false;
 
         public static int currentPoints;
-        public static bool openedDen = false;
+        public static bool iOpenedDen = false;
+
+        public int spearCost;
+        public int spearExplCost;
+        public int bombCost;
+        public int respCost;
+        public int denCost;
+        public int maxCreatures;
+        public int creatureCleanupWaves;
 
         private int _timerDuration;
-        private int waveStart = 1200;
-        private int currentWaveTimer = 1200;
-        private int currentWave = 0;
-        private int lastCleanupWave = 0;
+        public bool openedDen = false;
+        public int waveStart = 20;
+        public int currentWaveTimer = 20;
+        public int currentWave = 0;
+        public int lastCleanupWave = 0;
+        public bool waveNeedsUpdate = true;
 
         public override bool IsExitsOpen(ArenaOnlineGameMode arena, On.ArenaBehaviors.ExitManager.orig_ExitsOpen orig, ArenaBehaviors.ExitManager self)
         {
             return openedDen;
 
         }
+
 
         public override bool SpawnBatflies(FliesWorldAI self, int spawnRoom)
         {
@@ -36,14 +53,28 @@ namespace Drown
 
         public override void ArenaSessionCtor(ArenaOnlineGameMode arena, On.ArenaGameSession.orig_ctor orig, ArenaGameSession self, RainWorldGame game)
         {
-            DrownMode.openedDen = false;
+            openedDen = false;
+            DrownMode.iOpenedDen = false;
             currentWave = 1;
             currentPoints = 5;
             lastCleanupWave = 0;
+
+            if (OnlineManager.lobby.isOwner)
+            {
+                spearCost = DrownMod.drownOptions.PointsForSpear.Value;
+                spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
+                bombCost = DrownMod.drownOptions.PointsForBomb.Value;
+                respCost = DrownMod.drownOptions.PointsForRespawn.Value;
+                denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
+                maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
+                creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
+            }
+
             foreach (var player in self.arenaSitting.players)
             {
                 player.score = currentPoints;
             }
+
         }
 
         public override void InitAsCustomGameType(ArenaSetup.GameTypeSetup self)
@@ -88,28 +119,24 @@ namespace Drown
         {
             if (!openedDen)
             {
-                return ++timer;
+
+                currentWaveTimer--;
+                if (currentWaveTimer == 0)
+                {
+                    currentWaveTimer = waveStart;
+                    waveNeedsUpdate = true;
+                }
+
+                return ++arena.setupTime;
             }
             else
             {
-                return timer;
+                return arena.setupTime;
             }
         }
 
         public override void LandSpear(ArenaOnlineGameMode arena, ArenaGameSession self, Player player, Creature target, ArenaSitting.ArenaPlayer aPlayer)
         {
-            currentPoints++;
-            aPlayer.score = currentPoints;
-
-            for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-            {
-                var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                if (!currentPlayer.isMe)
-                {
-                    currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, currentPoints, OnlineManager.mePlayer.inLobbyId);
-
-                }
-            }
 
         }
 
@@ -125,7 +152,7 @@ namespace Drown
         }
         public override string AddCustomIcon(ArenaOnlineGameMode arena, PlayerSpecificOnlineHud hud)
         {
-            if (isInStore)
+            if (isInStore && hud.clientSettings.owner == OnlineManager.mePlayer)
             {
                 return "spearSymbol";
 
@@ -136,41 +163,58 @@ namespace Drown
             }
         }
 
+
+
         public override void ArenaSessionUpdate(ArenaOnlineGameMode arena, ArenaGameSession session)
         {
-            if (session.GameTypeSetup.spearsHitPlayers)
+
+            if (!session.sessionEnded)
             {
                 for (int i = 0; i < session.Players.Count; i++)
                 {
-                    if (!session.sessionEnded)
+                    if (session.GameTypeSetup.spearsHitPlayers)
                     {
                         if (session.exitManager.IsPlayerInDen(session.Players[i]))
                         {
                             session.EndSession();
                         }
                     }
+
+                    if (!OnlinePhysicalObject.map.TryGetValue(session.Players[i], out var onlineP) || session.Players[i].state.dead)
+                    {
+                        session.Players.Remove(session.Players[i]);
+                    }
+
                 }
+
             }
 
             if (!openedDen)
             {
-                currentWaveTimer--;
+                if (currentWaveTimer % waveStart == 0 && session.playersSpawned && waveNeedsUpdate)
+                {
+                    var notSlugcatCount = 0;
+                    for (int i = 0; i < session.room.abstractRoom.creatures.Count; i++)
+                    {
+                        if (session.room.abstractRoom.creatures[i].creatureTemplate.type != CreatureTemplate.Type.Slugcat && session.room.abstractRoom.creatures[i].state.alive)
+                        {
+                            notSlugcatCount++;
+                        }
 
-                if (currentWaveTimer == 0)
-                {
-                    currentWaveTimer = waveStart;
-                }
-                if (currentWaveTimer % waveStart == 0)
-                {
-                    session.SpawnCreatures();
+                    }
+                    if (notSlugcatCount < maxCreatures)
+                    {
+                        session.SpawnCreatures();
+                    }
                     currentWave++;
                 }
-                if (currentWave % 2 == 0 && currentWave > lastCleanupWave)
+                if (currentWave % creatureCleanupWaves == 0 && currentWave > lastCleanupWave)
                 {
                     lastCleanupWave = currentWave;
 
                     CreatureCleanup(arena, session);
                 }
+                waveNeedsUpdate = false;
             }
 
         }
@@ -182,9 +226,16 @@ namespace Drown
                 var entities = session.room.abstractRoom.entities;
                 for (int i = entities.Count - 1; i >= 0; i--)
                 {
-                    if (entities[i] is AbstractPhysicalObject apo && apo is AbstractCreature ac && ac.state.dead && ac.creatureTemplate.type != CreatureTemplate.Type.Slugcat && OnlinePhysicalObject.map.TryGetValue(apo, out var oe))
+                    if (entities[i] is AbstractPhysicalObject apo && apo is AbstractCreature ac && ac.state.dead && ac.realizedCreature.grabbedBy.Count <= 0 && OnlinePhysicalObject.map.TryGetValue(apo, out var oe))
                     {
-                        oe.apo.LoseAllStuckObjects();
+                        for (int num = ac.stuckObjects.Count - 1; num >= 0; num--)
+                        {
+                            if (ac.stuckObjects[num] is AbstractPhysicalObject.AbstractSpearStick && ac.stuckObjects[num].A.type == AbstractPhysicalObject.AbstractObjectType.Spear && ac.stuckObjects[num].A.realizedObject != null)
+                            {
+                                (ac.stuckObjects[num].A.realizedObject as Spear).ChangeMode(Weapon.Mode.Free);
+                            }
+                        }
+                        ac.LoseAllStuckObjects();
                         if (!oe.isMine)
                         {
                             oe.beingMoved = true;
@@ -202,11 +253,12 @@ namespace Drown
                             session.room.CleanOutObjectNotInThisRoom(oe.apo.realizedObject);
                             oe.beingMoved = false;
                         }
-                        else 
+                        else
                         {
-                            oe.apo.realizedObject.RemoveFromRoom();
                             oe.ExitResource(roomSession);
                             oe.ExitResource(roomSession.worldSession);
+                            oe.apo.realizedObject.RemoveFromRoom();
+
                         }
 
 
