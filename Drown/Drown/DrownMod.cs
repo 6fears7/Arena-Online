@@ -1,14 +1,16 @@
 ﻿using BepInEx;
+using MonoMod.Cil;
 using RainMeadow;
 using System;
 using System.Linq;
 using System.Security.Permissions;
+using Mono.Cecil.Cil;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.1.5")]
+    [BepInPlugin("uo.drown", "Drown", "0.3.0")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -43,6 +45,9 @@ namespace Drown
                 On.Lizard.Violence += Lizard_Violence;
                 On.CompetitiveGameSession.ShouldSessionEnd += CompetitiveGameSession_ShouldSessionEnd;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
+                IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
+              
+                
 
 
                 fullyInit = true;
@@ -52,6 +57,54 @@ namespace Drown
                 Logger.LogError(e);
                 fullyInit = false;
             }
+        }
+
+
+        private void Player_ClassMechanicsSaint(ILContext il)
+        {
+
+            try
+            {
+                var c = new ILCursor(il);
+                ILLabel skip = il.DefineLabel();
+                c.GotoNext(
+                     i => i.MatchLdloc(18),
+                     i => i.MatchIsinst<Creature>(),
+                     i => i.MatchCallvirt<Creature>("Die")
+                     );
+                c.Emit(OpCodes.Ldarg_0);
+                c.Emit(OpCodes.Ldloc, 18);
+                c.EmitDelegate((Player self, PhysicalObject po) =>
+                {
+                    if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var _))
+                    {
+                        DrownMode.currentPoints++;
+                        for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
+                        {
+                            var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
+                            if (currentPlayer != null)
+                            {
+                                if (!currentPlayer.isMe)
+                                {
+                                    currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
+                                }
+                                else
+                                {
+
+                                    var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
+                                    self.room.game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                                }
+                            }
+                        }
+                    }
+                });
+
+            }
+            catch (Exception e)
+            {
+                Logger.LogError(e);
+            }
+
         }
 
         private void Spear_Spear_makeNeedle(On.Spear.orig_Spear_makeNeedle orig, Spear self, int type, bool active)
@@ -66,11 +119,11 @@ namespace Drown
 
         private bool CompetitiveGameSession_ShouldSessionEnd(On.CompetitiveGameSession.orig_ShouldSessionEnd orig, CompetitiveGameSession self)
         {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.onlineArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Value == DrownMode.Drown.value).Key)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
                 if (self.GameTypeSetup.spearsHitPlayers) // Competitive
                 {
-                    if (DrownMode.currentPoints >= DrownMode.respCost && !DrownMode.openedDen) // We can still respawn
+                    if (DrownMode.currentPoints >= DrownMode.respCost && !drown.openedDen) // We can still respawn
                     {
                         return false;
                     }
@@ -78,7 +131,7 @@ namespace Drown
                     var alivePlayers = self.Players.Where(player => player.state.alive);
                     var myPlayer = self.Players.Find(player => player.state.alive && OnlinePhysicalObject.map.TryGetValue(player, out var onlineP) && onlineP.owner == OnlineManager.mePlayer);
 
-                    if (DrownMode.openedDen && !DrownMode.iOpenedDen && myPlayer != null && myPlayer.realizedCreature != null)
+                    if (drown.openedDen && !DrownMode.iOpenedDen && myPlayer != null && myPlayer.realizedCreature != null)
                     {
                         self.game.cameras[0].hud.PlaySound(SoundID.MENU_Start_New_Game);
                         myPlayer.realizedCreature.Die();
@@ -89,7 +142,7 @@ namespace Drown
 
                 if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
                 {
-                    if (DrownMode.currentPoints >= DrownMode.respCost && !DrownMode.openedDen) // We can still respawn
+                    if (DrownMode.currentPoints >= DrownMode.respCost && !drown.openedDen) // We can still respawn
                     {
                         return false;
                     }
@@ -98,8 +151,6 @@ namespace Drown
                 }
             }
             return orig(self);
-
-
         }
 
         private void Lizard_Violence(On.Lizard.orig_Violence orig, Lizard self, BodyChunk source, UnityEngine.Vector2? directionAndMomentum, BodyChunk hitChunk, PhysicalObject.Appendage.Pos onAppendagePos, Creature.DamageType type, float damage, float stunBonus)
@@ -127,15 +178,17 @@ namespace Drown
                 for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
                 {
                     var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                    if (!currentPlayer.isMe)
+                    if (currentPlayer != null)
                     {
-                        currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
-                    }
-                    else
-                    {
-
-                        var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
-                        game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                        if (!currentPlayer.isMe)
+                        {
+                            currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
+                        }
+                        else
+                        {
+                            var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
+                            game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                        }
                     }
                 }
 
@@ -167,15 +220,18 @@ namespace Drown
                 for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
                 {
                     var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                    if (!currentPlayer.isMe)
+                    if (currentPlayer != null)
                     {
-                        currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
-                    }
-                    else
-                    {
+                        if (!currentPlayer.isMe)
+                        {
+                            currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
+                        }
+                        else
+                        {
 
-                        var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
-                        game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                            var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
+                            game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                        }
                     }
                 }
 
@@ -207,6 +263,7 @@ namespace Drown
                 {
                     arena.registeredGameModes.Add(new DrownMode(), DrownMode.Drown.value);
                 }
+                OnlineManager.lobby.AddData(new DrownData());
             }
             orig(self, manager);
 

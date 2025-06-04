@@ -7,12 +7,20 @@ namespace Drown
     {
 
         public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: true);
-
+        public static bool isDrownMode(ArenaOnlineGameMode arena, out DrownMode mode)
+        {
+            mode = null;
+            if (arena.currentGameMode == Drown.value)
+            {
+                mode = (arena.registeredGameModes.FirstOrDefault(x => x.Value == Drown.value).Key as DrownMode);
+                return true;
+            }
+            return false;
+        }
 
         public bool isInStore = false;
 
         public static int currentPoints;
-        public static bool openedDen = false;
         public static bool iOpenedDen = false;
 
         public static int spearCost;
@@ -24,15 +32,19 @@ namespace Drown
         public static int creatureCleanupWaves;
 
         private int _timerDuration;
-        private int waveStart = 1200;
-        private int currentWaveTimer = 1200;
-        private int currentWave = 0;
-        private int lastCleanupWave = 0;
+        public bool openedDen = false;
+        public int waveStart = 20;
+        public int currentWaveTimer = 20;
+        public int currentWave = 0;
+        public int lastCleanupWave = 0;
+        public bool waveNeedsUpdate = true;
+
         public override bool IsExitsOpen(ArenaOnlineGameMode arena, On.ArenaBehaviors.ExitManager.orig_ExitsOpen orig, ArenaBehaviors.ExitManager self)
         {
             return openedDen;
 
         }
+
 
         public override bool SpawnBatflies(FliesWorldAI self, int spawnRoom)
         {
@@ -41,7 +53,7 @@ namespace Drown
 
         public override void ArenaSessionCtor(ArenaOnlineGameMode arena, On.ArenaGameSession.orig_ctor orig, ArenaGameSession self, RainWorldGame game)
         {
-            DrownMode.openedDen = false;
+            openedDen = false;
             DrownMode.iOpenedDen = false;
             currentWave = 1;
             currentPoints = 5;
@@ -116,11 +128,19 @@ namespace Drown
         {
             if (!openedDen)
             {
-                return ++timer;
+
+                currentWaveTimer--;
+                if (currentWaveTimer == 0)
+                {
+                    currentWaveTimer = waveStart;
+                    waveNeedsUpdate = true;
+                }
+
+                return ++arena.setupTime;
             }
             else
             {
-                return timer;
+                return arena.setupTime;
             }
         }
 
@@ -180,13 +200,7 @@ namespace Drown
 
             if (!openedDen)
             {
-                currentWaveTimer--;
-
-                if (currentWaveTimer == 0)
-                {
-                    currentWaveTimer = waveStart;
-                }
-                if (currentWaveTimer % waveStart == 0)
+                if (currentWaveTimer % waveStart == 0 && session.playersSpawned && waveNeedsUpdate)
                 {
                     var notSlugcatCount = 0;
                     for (int i = 0; i < session.room.abstractRoom.creatures.Count; i++)
@@ -209,6 +223,7 @@ namespace Drown
 
                     CreatureCleanup(arena, session);
                 }
+                waveNeedsUpdate = false;
             }
 
         }
@@ -220,7 +235,7 @@ namespace Drown
                 var entities = session.room.abstractRoom.entities;
                 for (int i = entities.Count - 1; i >= 0; i--)
                 {
-                    if (entities[i] is AbstractPhysicalObject apo && apo is AbstractCreature ac && ac.state.dead && ac.realizedCreature.grabbedBy.Count <= 0 && ac.creatureTemplate.type != CreatureTemplate.Type.Slugcat && OnlinePhysicalObject.map.TryGetValue(apo, out var oe))
+                    if (entities[i] is AbstractPhysicalObject apo && apo is AbstractCreature ac && ac.state.dead && ac.realizedCreature.grabbedBy.Count <= 0 && OnlinePhysicalObject.map.TryGetValue(apo, out var oe))
                     {
                         for (int num = ac.stuckObjects.Count - 1; num >= 0; num--)
                         {
