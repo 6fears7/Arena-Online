@@ -5,6 +5,7 @@ using System;
 using System.Linq;
 using System.Security.Permissions;
 using Mono.Cecil.Cil;
+using Unity.IO.LowLevel.Unsafe;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -123,7 +124,7 @@ namespace Drown
             {
                 if (self.GameTypeSetup.spearsHitPlayers) // Competitive
                 {
-                    if (DrownMode.currentPoints >= DrownMode.respCost && !drown.openedDen) // We can still respawn
+                    if (DrownMode.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
                     {
                         return false;
                     }
@@ -142,7 +143,7 @@ namespace Drown
 
                 if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
                 {
-                    if (DrownMode.currentPoints >= DrownMode.respCost && !drown.openedDen) // We can still respawn
+                    if (DrownMode.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
                     {
                         return false;
                     }
@@ -256,14 +257,14 @@ namespace Drown
 
         private void MultiplayerMenu_ctor(On.Menu.MultiplayerMenu.orig_ctor orig, Menu.MultiplayerMenu self, ProcessManager manager)
         {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena))
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null)
             {
                 var drown = new DrownMode();
                 if (!arena.registeredGameModes.ContainsKey(drown))
                 {
                     arena.registeredGameModes.Add(new DrownMode(), DrownMode.Drown.value);
+                    OnlineManager.lobby.AddData(new DrownData());
                 }
-                OnlineManager.lobby.AddData(new DrownData());
             }
             orig(self, manager);
 

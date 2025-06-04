@@ -124,11 +124,11 @@ namespace Drown
             this.pos = new Vector2(180, 553);
             this.pages[0].subObjects.Add(new Menu.MenuLabel(this, this.pages[0], this.Translate("STORE"), new Vector2(pos.x, pos.y + 30f), new Vector2(110, 30), true));
             var storeItems = new Dictionary<string, int> {
-            { "Spear", DrownMode.spearCost },
-            { "Explosive Spear", DrownMode.spearExplCost },
-            { "Scavenger Bomb", DrownMode.bombCost },
-            { "Respawn", DrownMode.respCost },
-            { "Open Dens", DrownMode.denCost},
+            { "Spear", drown.spearCost },
+            { "Explosive Spear", drown.spearExplCost },
+            { "Scavenger Bomb", drown.bombCost },
+            { "Respawn", drown.respCost },
+            { "Open Dens", drown.denCost},
 
 
         };

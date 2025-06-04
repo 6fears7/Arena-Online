@@ -9,6 +9,13 @@ namespace RainMeadow
 
         public int currentWaveTimer;
         public int currentWave;
+        public int spearCost;
+        public int spearExpCost;
+        public int bombCost;
+        public int respCost;
+        public int denCost;
+        public int maxCreatures;
+
         public bool densOpened;
         public override ResourceDataState MakeState(OnlineResource resource)
         {
@@ -19,9 +26,23 @@ namespace RainMeadow
         {
             [OnlineField]
             int currentWaveTimer;
-
             [OnlineField]
             int currentWave;
+            [OnlineField]
+            int spearCost;
+            [OnlineField]
+            int spearExplCost;
+            [OnlineField]
+            int bombCost;
+            [OnlineField]
+            int respCost;
+            [OnlineField]
+            int denCost;
+            [OnlineField]
+            int maxCreatures;
+            [OnlineField]
+            int creatureCleanupWaves;
+
             [OnlineField]
             bool densOpened;
             public State() { }
@@ -33,9 +54,16 @@ namespace RainMeadow
 
                 if (cachedDrown)
                 {
-                    currentWaveTimer = (drownData as Drown.DrownMode).currentWaveTimer;
-                    currentWave = (drownData as Drown.DrownMode).currentWave;
-                    densOpened = (drownData as Drown.DrownMode).openedDen;
+                    currentWaveTimer = (drownData).currentWaveTimer;
+                    currentWave = drownData.currentWave;
+                    densOpened = drownData.openedDen;
+                    spearCost = drownData.spearCost;
+                    spearExplCost = drownData.spearExplCost;
+                    bombCost = drownData.bombCost;
+                    respCost = drownData.respCost;
+                    denCost = drownData.denCost;
+                    maxCreatures = drownData.maxCreatures;
+                    creatureCleanupWaves = drownData.creatureCleanupWaves;
 
                 }
 
@@ -50,9 +78,16 @@ namespace RainMeadow
 
                 if (cachedDrown && drownData != null && (drownData as DrownMode != null))
                 {
-                    (drownData as Drown.DrownMode).currentWaveTimer = currentWaveTimer;
-                    (drownData as Drown.DrownMode).currentWave = currentWave;
-                    (drownData as Drown.DrownMode).openedDen = densOpened;
+                    (drownData).currentWaveTimer = currentWaveTimer;
+                    drownData.currentWave = currentWave;
+                    drownData.openedDen = densOpened;
+                    drownData.spearCost = spearCost;
+                    drownData.spearExplCost = spearExplCost;
+                    drownData.bombCost = bombCost;
+                    drownData.respCost = respCost;
+                    drownData.denCost = denCost;
+                    drownData.maxCreatures = maxCreatures;
+                    drownData.creatureCleanupWaves = creatureCleanupWaves;
 
                 }
             }

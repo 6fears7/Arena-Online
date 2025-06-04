@@ -23,13 +23,13 @@ namespace Drown
         public static int currentPoints;
         public static bool iOpenedDen = false;
 
-        public static int spearCost;
-        public static int spearExplCost;
-        public static int bombCost;
-        public static int respCost;
-        public static int denCost;
-        public static int maxCreatures;
-        public static int creatureCleanupWaves;
+        public int spearCost;
+        public int spearExplCost;
+        public int bombCost;
+        public int respCost;
+        public int denCost;
+        public int maxCreatures;
+        public int creatureCleanupWaves;
 
         private int _timerDuration;
         public bool openedDen = false;
@@ -73,15 +73,6 @@ namespace Drown
             foreach (var player in self.arenaSitting.players)
             {
                 player.score = currentPoints;
-            }
-
-            if (OnlineManager.lobby.isOwner)
-            {
-                foreach (var player in OnlineManager.players)
-                {
-                    if (!player.isMe) player.InvokeOnceRPC(DrownModeRPCs.SyncRemix, spearCost, spearExplCost, bombCost, respCost, denCost, maxCreatures, creatureCleanupWaves);
-
-                }
             }
 
         }

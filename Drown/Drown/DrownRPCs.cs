@@ -43,18 +43,5 @@ namespace Drown
             }
         }
 
-        [RainMeadow.RPCMethod]
-        public static void SyncRemix(RPCEvent rpcEvent, int spearCost, int spearExplCost, int bombCost, int respCost, int denCost, int maxCreatures, int creatureCleanupWaves)
-        {
-            RainMeadow.RainMeadow.Debug("Recieved Remix values: " + spearCost +  spearExplCost + bombCost + respCost + denCost + maxCreatures);
-            DrownMode.spearCost = spearCost;
-            DrownMode.spearExplCost = spearExplCost;
-            DrownMode.bombCost = bombCost;
-            DrownMode.respCost = respCost;
-            DrownMode.denCost = denCost;
-            DrownMode.maxCreatures = maxCreatures;
-            DrownMode.creatureCleanupWaves = creatureCleanupWaves;
-
-        }
     }
 }
