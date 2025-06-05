@@ -11,7 +11,7 @@ using Unity.IO.LowLevel.Unsafe;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.3.0")]
+    [BepInPlugin("uo.drown", "Drown", "0.3.1")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;

@@ -70,18 +70,15 @@ namespace Drown
                             if (DrownMode.isDrownMode(arena, out var drown))
                             {
 
-                                drown.openedDen = true;
-
                                 DrownMode.iOpenedDen = true;
+                                drown.openedDen = true;
                                 for (int j = 0; j < arena.arenaSittingOnlineOrder.Count; j++)
                                 {
                                     var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, j);
-                                    if (currentPlayer != null)
+                                    if (currentPlayer != null && !OnlineManager.lobby.isOwner)
                                     {
-                                        if (!currentPlayer.isMe)
-                                        {
-                                            currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_OpenDen, drown.openedDen);
-                                        }
+                                        OnlineManager.lobby.owner.InvokeOnceRPC(DrownModeRPCs.Arena_OpenDen, drown.openedDen);
+
                                     }
                                 }
                             }
@@ -153,7 +150,8 @@ namespace Drown
         public override void Update()
         {
             base.Update();
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena)) {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena))
+            {
                 if (DrownMode.isDrownMode(arena, out var drown))
                     for (int p = 0; p < game.Players.Count; p++)
                     {
