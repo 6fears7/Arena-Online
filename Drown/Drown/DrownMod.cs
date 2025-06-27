@@ -6,6 +6,7 @@ using System.Linq;
 using System.Security.Permissions;
 using Mono.Cecil.Cil;
 using Unity.IO.LowLevel.Unsafe;
+using RainMeadow.UI;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -40,7 +41,7 @@ namespace Drown
             {
                 MachineConnector.SetRegisteredOI("uo_drown", drownOptions);
 
-                On.Menu.MultiplayerMenu.ctor += MultiplayerMenu_ctor;
+                On.Menu.Menu.ctor += Menu_ctor;
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
                 On.Creature.Violence += Creature_Violence;
                 On.Lizard.Violence += Lizard_Violence;
@@ -60,6 +61,19 @@ namespace Drown
             }
         }
 
+        private void Menu_ctor(On.Menu.Menu.orig_ctor orig, Menu.Menu self, ProcessManager manager, ProcessManager.ProcessID ID)
+        {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null && self is ArenaOnlineLobbyMenu)
+            {
+                if (!arena.registeredGameModes.ContainsKey(DrownMode.Drown.value))
+                {
+                    arena.registeredGameModes.Add(DrownMode.Drown.value, new DrownMode());
+                    OnlineManager.lobby.AddData(new DrownData());
+                }
+            }
+            orig(self, manager, ID);
+
+        }
 
         private void Player_ClassMechanicsSaint(ILContext il)
         {
@@ -255,19 +269,5 @@ namespace Drown
 
         }
 
-        private void MultiplayerMenu_ctor(On.Menu.MultiplayerMenu.orig_ctor orig, Menu.MultiplayerMenu self, ProcessManager manager)
-        {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null)
-            {
-                if (!arena.registeredGameModes.ContainsKey(DrownMode.Drown.value))
-                {
-                    arena.registeredGameModes.Add(DrownMode.Drown.value, new DrownMode());
-                    OnlineManager.lobby.AddData(new DrownData());
-                }
-            }
-            orig(self, manager);
-
-
-        }
     }
 }
