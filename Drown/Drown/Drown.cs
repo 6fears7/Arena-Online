@@ -177,84 +177,101 @@ namespace Drown
         {
             return "Drown";
         }
-        public readonly Configurable<int> MaxCreatureCount;
-        public readonly Configurable<int> PointsForSpear;
-        public readonly Configurable<int> PointsForExplSpear;
-        public readonly Configurable<int> PointsForBomb;
-        public readonly Configurable<int> PointsForRespawn;
-        public readonly Configurable<int> PointsForDenOpen;
-        public readonly Configurable<int> CreatureCleanups;
-
-
-        public readonly Configurable<KeyCode> StoreItem1;
-        public readonly Configurable<KeyCode> StoreItem2;
-        public readonly Configurable<KeyCode> StoreItem3;
-        public readonly Configurable<KeyCode> StoreItem4;
-        public readonly Configurable<KeyCode> StoreItem5;
-        public readonly Configurable<KeyCode> OpenStore;
+        public OpTextBox? maxCreaturesTextBox;
+        public OpTextBox? maxCTextBox;
+        public OpTextBox? pointsForSpearTextBox;
+        public OpTextBox? pointsForExplSpearTextBox;
+        public OpTextBox? pointsForBombTextBox;
+        public OpTextBox? pointsForRespawnTextBox;
+        public OpTextBox? pointsForDenOpenTextBox;
+        public OpTextBox? creatureCleanupsTextBox;
 
         public override void ArenaExternalGameModeSettingsInterface_ctor(ArenaOnlineGameMode arena, OnlineArenaExternalGameModeSettingsInterface extComp, Menu.Menu menu, MenuObject owner, MenuTabWrapper tabWrapper, Vector2 pos, float settingsWidth = 300)
         {
+            if (isDrownMode(arena, out var drown))
+            {
 
-            var title = new ProperlyAlignedMenuLabel(menu, extComp, "DROWN", new Vector2(10, 550), new Vector2(0, 20), false);
-            //var maxCL = new OpLabel(10f, 505, "Max creatures in level", bigText: false);
-            //var maxC = new OpTextBox(MaxCreatureCount, new Vector2(10, 480), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
-            //new OpLabel(10f, 460, "Points required to buy a spear", bigText: false);
-            //new OpTextBox(PointsForSpear, new Vector2(10, 435), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
-            //new OpLabel(10f, 410, "Points required to buy an explosive spear", bigText: false);
-            //new OpTextBox(PointsForExplSpear, new Vector2(10, 385), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
-            //new OpLabel(10f, 365, "Points required to buy a scav bomb", bigText: false);
-            //new OpTextBox(PointsForBomb, new Vector2(10, 340), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
-            //new OpLabel(10f, 315, "Points required to buy a respawn", bigText: false);
-            //new OpTextBox(PointsForRespawn, new Vector2(10, 290), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
-            //new OpLabel(10f, 265, "Points required to open dens", bigText: false);
-            //new OpTextBox(PointsForDenOpen, new Vector2(10, 240), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
 
-            //new OpLabel(10f, 215, "How many waves before creature cleanup", bigText: false);
-            //new OpTextBox(CreatureCleanups, new Vector2(10, 190), 160f)
-            //{
-            //    accept = OpTextBox.Accept.Int
-            //};
+                var maxCLLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Max creatures in level", new Vector2(10f, 400), new Vector2(0, 20), false);
+                maxCTextBox = new(new Configurable<int>(DrownMod.drownOptions.MaxCreatureCount.Value), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
 
-            //new OpLabel(260, 500, "Hot key used to buy spear (store needs to be open)", bigText: false);
-            //new OpKeyBinder(StoreItem1, new Vector2(260, 470), new Vector2(150f, 30f));
+                var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a spear", new Vector2(10f, maxCTextBox.pos.y - 15), new Vector2(0, 20), false);
+                pointsForSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForSpear.Value), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper pointsForSpearTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForSpearTextBox);
 
-            //new OpLabel(260, 445, "Hot key used to buy explosive spear", bigText: false);
-            //new OpKeyBinder(StoreItem2, new Vector2(260, 415), new Vector2(150f, 30f));
+                var pointsForExplSpearLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy an explosive spear", new Vector2(10f, pointsForSpearTextBox.pos.y - 15), new Vector2(0, 20), false);
+                pointsForExplSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForExplSpear.Value), new Vector2(10, pointsForExplSpearLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper pointsForExplSpearTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForExplSpearTextBox);
 
-            //new OpLabel(260, 390, "Hot key used to buy scav bomb", bigText: false);
-            //new OpKeyBinder(StoreItem3, new Vector2(260, 360), new Vector2(150f, 30f));
+                var pointsForBombLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a scav bomb", new Vector2(10f, pointsForExplSpearTextBox.pos.y - 15), new Vector2(0, 20), false);
+                pointsForBombTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForBomb.Value), new Vector2(10, pointsForBombLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper pointsForBombTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForBombTextBox);
 
-            //new OpLabel(260, 340, "Hot key used to buy respawn", bigText: false);
-            //new OpKeyBinder(StoreItem4, new Vector2(260, 310), new Vector2(150f, 30f));
+                var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a respawn", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
+                pointsForRespawnTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForRespawn.Value), new Vector2(10, pointsForRespawnLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper pointsForRespawnTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForRespawnTextBox);
 
-            //new OpLabel(260, 290, "Hot key used to open den", bigText: false);
-            //new OpKeyBinder(StoreItem5, new Vector2(260, 260), new Vector2(150f, 30f));
+                var pointsForDenOpenLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to open dens", new Vector2(10f, pointsForRespawnTextBox.pos.y - 15), new Vector2(0, 20), false);
+                pointsForDenOpenTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForDenOpen.Value), new Vector2(10, pointsForDenOpenLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper pointsForDenOpenTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForDenOpenTextBox);
 
-            //new OpLabel(260, 240, "Key used to access store", bigText: false);
-            //new OpKeyBinder(OpenStore, new Vector2(260, 210), new Vector2(150f, 30f));
-            extComp.SafeAddSubobjects(tabWrapper, title);
+                var creatureCleanupsLabel = new ProperlyAlignedMenuLabel(menu, extComp, "How many waves before creature cleanup", new Vector2(10f, pointsForDenOpenTextBox.pos.y - 15), new Vector2(0, 20), false);
+                creatureCleanupsTextBox = new(new Configurable<int>(DrownMod.drownOptions.CreatureCleanup.Value), new Vector2(10, creatureCleanupsLabel.pos.y - 25), 160f)
+                {
+                    accept = OpTextBox.Accept.Int
+                };
+                UIelementWrapper creatureCleanupsTextBoxWrapper = new UIelementWrapper(tabWrapper, creatureCleanupsTextBox);
 
+                var storeItem1Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy spear (store needs to be open)", new Vector2(260, maxCLLabel.pos.y), new Vector2(0, 20), false);
+                var storeItem1KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem1, new Vector2(260, storeItem1Label.pos.y - 30), new Vector2(150f, 30f));
+                UIelementWrapper storeItem1KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem1KeyBinder);
+
+                var storeItem2Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy explosive spear", new Vector2(260, storeItem1KeyBinder.pos.y - 15), new Vector2(0, 20), false);
+                var storeItem2KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem2, new Vector2(260, storeItem2Label.pos.y - 30), new Vector2(150f, 30f));
+                UIelementWrapper storeItem2KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem2KeyBinder);
+
+                var storeItem3Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy scav bomb", new Vector2(260, storeItem2KeyBinder.pos.y - 15), new Vector2(0, 20), false);
+                var storeItem3KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem3, new Vector2(260, storeItem3Label.pos.y - 30), new Vector2(150f, 30f));
+                UIelementWrapper storeItem3KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem3KeyBinder);
+
+                var storeItem4Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy respawn", new Vector2(260, storeItem3KeyBinder.pos.y - 15), new Vector2(0, 20), false);
+                var storeItem4KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem4, new Vector2(260, storeItem4Label.pos.y - 30), new Vector2(150f, 30f));
+                UIelementWrapper storeItem4KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem4KeyBinder);
+
+                var storeItem5Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to open den", new Vector2(260, storeItem4KeyBinder.pos.y - 15), new Vector2(0, 20), false);
+                var storeItem5KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem5, new Vector2(260, storeItem5Label.pos.y - 30), new Vector2(150f, 30f));
+                UIelementWrapper storeItem5KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem5KeyBinder);
+
+                var openStoreLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Key used to access store", new Vector2(260, storeItem5KeyBinder.pos.y - 15), new Vector2(0, 20), false);
+                var openStoreKeyBinder = new OpKeyBinder(DrownMod.drownOptions.OpenStore, new Vector2(260, openStoreLabel.pos.y - 30), new Vector2(150f, 30f));
+                extComp.SafeAddSubobjects(tabWrapper,  maxCLLabel, maxCTextBoxWrapper,
+                    pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper,
+                    pointsForBombLabel, pointsForBombTextBoxWrapper, pointsForRespawnLabel, pointsForRespawnTextBoxWrapper,
+                    pointsForDenOpenLabel, pointsForDenOpenTextBoxWrapper, creatureCleanupsLabel, creatureCleanupsTextBoxWrapper,
+                    storeItem1Label, storeItem1KeyBinderWrapper, storeItem2Label, storeItem2KeyBinderWrapper,
+                    storeItem3Label, storeItem3KeyBinderWrapper, storeItem4Label, storeItem4KeyBinderWrapper,
+                    storeItem5Label, storeItem5KeyBinderWrapper, openStoreLabel);
+            }
         }
-
 
 
         public override void ArenaSessionUpdate(ArenaOnlineGameMode arena, ArenaGameSession session)
