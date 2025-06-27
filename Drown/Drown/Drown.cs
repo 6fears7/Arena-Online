@@ -12,7 +12,7 @@ namespace Drown
             mode = null;
             if (arena.currentGameMode == Drown.value)
             {
-                mode = (arena.registeredGameModes.FirstOrDefault(x => x.Value == Drown.value).Key as DrownMode);
+                mode = (arena.registeredGameModes.FirstOrDefault(x => x.Key == Drown.value).Value as DrownMode);
                 return true;
             }
             return false;
@@ -48,7 +48,7 @@ namespace Drown
 
         public override bool SpawnBatflies(FliesWorldAI self, int spawnRoom)
         {
-            return true;
+            return false;
         }
 
         public override void ArenaSessionCtor(ArenaOnlineGameMode arena, On.ArenaGameSession.orig_ctor orig, ArenaGameSession self, RainWorldGame game)
