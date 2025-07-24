@@ -6,12 +6,13 @@ using System.Linq;
 using System.Security.Permissions;
 using Mono.Cecil.Cil;
 using Unity.IO.LowLevel.Unsafe;
+using RainMeadow.UI;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.3.1")]
+    [BepInPlugin("uo.drown", "Drown", "0.3.2")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -40,7 +41,7 @@ namespace Drown
             {
                 MachineConnector.SetRegisteredOI("uo_drown", drownOptions);
 
-                On.Menu.MultiplayerMenu.ctor += MultiplayerMenu_ctor;
+                On.Menu.Menu.ctor += Menu_ctor;
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
                 On.Creature.Violence += Creature_Violence;
                 On.Lizard.Violence += Lizard_Violence;
@@ -60,6 +61,19 @@ namespace Drown
             }
         }
 
+        private void Menu_ctor(On.Menu.Menu.orig_ctor orig, Menu.Menu self, ProcessManager manager, ProcessManager.ProcessID ID)
+        {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null && self is ArenaOnlineLobbyMenu)
+            {
+                if (!arena.registeredGameModes.ContainsKey(DrownMode.Drown.value))
+                {
+                    arena.registeredGameModes.Add(DrownMode.Drown.value, new DrownMode());
+                    OnlineManager.lobby.AddData(new DrownData());
+                }
+            }
+            orig(self, manager, ID);
+
+        }
 
         private void Player_ClassMechanicsSaint(ILContext il)
         {
@@ -111,7 +125,7 @@ namespace Drown
         private void Spear_Spear_makeNeedle(On.Spear.orig_Spear_makeNeedle orig, Spear self, int type, bool active)
         {
             orig(self, type, active);
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.onlineArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Value == DrownMode.Drown.value).Key)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
             {
                 DrownMode.currentPoints = DrownMode.currentPoints - 1;
             }
@@ -161,7 +175,7 @@ namespace Drown
             {
                 return;
             }
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.onlineArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Value == DrownMode.Drown.value).Key)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
             {
 
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
@@ -204,7 +218,7 @@ namespace Drown
             {
                 return;
             }
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.onlineArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Value == DrownMode.Drown.value).Key)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
             {
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
@@ -243,7 +257,7 @@ namespace Drown
 
         private void TextPrompt_AddMessage_string_int_int_bool_bool(On.HUD.TextPrompt.orig_AddMessage_string_int_int_bool_bool orig, HUD.TextPrompt self, string text, int wait, int time, bool darken, bool hideHud)
         {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.onlineArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Value == DrownMode.Drown.value).Key)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
             {
                 text = text + $" - Press {drownOptions.OpenStore.Value} to access the store";
                 orig(self, text, wait, time, darken, hideHud);
@@ -255,20 +269,5 @@ namespace Drown
 
         }
 
-        private void MultiplayerMenu_ctor(On.Menu.MultiplayerMenu.orig_ctor orig, Menu.MultiplayerMenu self, ProcessManager manager)
-        {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null)
-            {
-                var drown = new DrownMode();
-                if (!arena.registeredGameModes.ContainsKey(drown))
-                {
-                    arena.registeredGameModes.Add(new DrownMode(), DrownMode.Drown.value);
-                    OnlineManager.lobby.AddData(new DrownData());
-                }
-            }
-            orig(self, manager);
-
-
-        }
     }
 }
