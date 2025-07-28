@@ -30,6 +30,7 @@ namespace Drown
                         storeOverlay = new StoreOverlay(game.manager, game, drown, arena);
                         this.drown.isInStore = true;
 
+
                     }
                     else
                     {
