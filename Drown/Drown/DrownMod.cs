@@ -57,11 +57,11 @@ namespace Drown
                     orig(self);
                     OnlineManager.lobby.AddData(new DrownData());
                 });
-                //new Hook(typeof(ArenaOnlineGameMode).GetMethod("AddClientData", BindingFlags.Public | BindingFlags.Instance), (Action<ArenaOnlineGameMode> orig, ArenaOnlineGameMode self) =>
-                //{
-                //    orig(self);
-                //    self.clientSettings.AddData(new ArenaDrownClientSettings());
-                //});
+                new Hook(typeof(ArenaOnlineGameMode).GetMethod("AddClientData", BindingFlags.Public | BindingFlags.Instance), (Action<ArenaOnlineGameMode> orig, ArenaOnlineGameMode self) =>
+                {
+                    orig(self);
+                    self.clientSettings.AddData(new ArenaDrownClientSettings());
+                });
 
                 fullyInit = true;
             }
