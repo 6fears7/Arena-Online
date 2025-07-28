@@ -28,7 +28,7 @@ namespace Drown
                 if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null &&  DrownMode.isDrownMode(arena, out var drown) && drown != null)
                 {
                     score = drown.currentPoints;
-                    isInStore = onlineEntity.isInStore;
+                    isInStore = drown.isInStore;
                 }
             }
 

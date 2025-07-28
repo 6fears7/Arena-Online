@@ -164,15 +164,15 @@ namespace RainMeadow.UI.Components
 
         public void OnShutdown()
         {
-            if (!(OnlineManager.lobby?.isOwner == true)) return;
+            //if (!(OnlineManager.lobby?.isOwner == true)) return;
 
-            DrownMod.drownOptions.MaxCreatureCount.Value = DROWN.maxCreatures;
-            DrownMod.drownOptions.PointsForSpear.Value = DROWN.spearCost;
-            DrownMod.drownOptions.PointsForExplSpear.Value = DROWN.spearExplCost;
-            DrownMod.drownOptions.PointsForBomb.Value = DROWN.bombCost;
-            DrownMod.drownOptions.PointsForRespawn.Value = DROWN.respCost;
-            DrownMod.drownOptions.PointsForDenOpen.Value = DROWN.denCost;
-            DrownMod.drownOptions.CreatureCleanup.Value = DROWN.creatureCleanupWaves;
+            //DrownMod.drownOptions.MaxCreatureCount.Value = DROWN.maxCreatures;
+            //DrownMod.drownOptions.PointsForSpear.Value = DROWN.spearCost;
+            //DrownMod.drownOptions.PointsForExplSpear.Value = DROWN.spearExplCost;
+            //DrownMod.drownOptions.PointsForBomb.Value = DROWN.bombCost;
+            //DrownMod.drownOptions.PointsForRespawn.Value = DROWN.respCost;
+            //DrownMod.drownOptions.PointsForDenOpen.Value = DROWN.denCost;
+            //DrownMod.drownOptions.CreatureCleanup.Value = DROWN.creatureCleanupWaves;
 
         }
         public void CreatePageButtons()
