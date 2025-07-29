@@ -49,7 +49,7 @@ namespace Drown
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
                 On.Creature.Violence += Creature_Violence;
                 On.Lizard.Violence += Lizard_Violence;
-                On.CompetitiveGameSession.ShouldSessionEnd += CompetitiveGameSession_ShouldSessionEnd;
+                On.ArenaGameSession.ShouldSessionEnd += ArenaGameSession_ShouldSessionEnd;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
                 new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), (Action<Lobby> orig, Lobby self) =>
@@ -105,23 +105,16 @@ namespace Drown
                     if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
                     {
                         drown.currentPoints++;
-                        //for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                        //{
-                        //    var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                        //    if (currentPlayer != null)
-                        //    {
-                        //        OnlineManager.lobby.clientSettings.TryGetValue(currentPlayer, out var cs);
-                        //        if (cs != null)
-                        //        {
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
 
-                        //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                        //            if (clientSettings != null)
-                        //            {
-                        //                clientSettings.score = drown.currentPoints;
-                        //            }
-                        //        }
-                        //    }
-                        //}
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score = drown.currentPoints;
+                            }
+                        }
                     }
                 });
 
@@ -147,40 +140,35 @@ namespace Drown
 
         }
 
-        private bool CompetitiveGameSession_ShouldSessionEnd(On.CompetitiveGameSession.orig_ShouldSessionEnd orig, CompetitiveGameSession self)
+        private bool ArenaGameSession_ShouldSessionEnd(On.ArenaGameSession.orig_ShouldSessionEnd orig, ArenaGameSession self)
         {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-                if (self.GameTypeSetup.spearsHitPlayers) // Competitive
+                //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
+                //{
+                if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
                 {
-                    if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
-                    {
-                        return false;
-                    }
-
-                    var alivePlayers = self.Players.Where(player => player.state.alive);
-                    var myPlayer = self.Players.Find(player => player.state.alive && OnlinePhysicalObject.map.TryGetValue(player, out var onlineP) && onlineP.owner == OnlineManager.mePlayer);
-
-                    if (drown.openedDen && !DrownMode.iOpenedDen && myPlayer != null && myPlayer.realizedCreature != null)
-                    {
-                        self.game.cameras[0].hud.PlaySound(SoundID.MENU_Start_New_Game);
-                        myPlayer.realizedCreature.Die();
-                    }
-                    return alivePlayers.Any(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive); // Dens are opened and we have no money. Did anyone beat us there or is everyone dead?
-
+                    return false;
                 }
 
-                if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
-                {
+                //var alivePlayers = self.Players.Where(player => player.state.alive);
 
-                    if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
-                    {
-                        return false;
-                    }
-                    var alivePlayers = self.Players.Where(player => player.state.alive);
-                    return alivePlayers.All(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive);
-                }
             }
+            //    return alivePlayers.Any(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive); // Dens are opened and we have no money. Did anyone beat us there or is everyone dead?
+
+            //}
+
+            //if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
+            //{
+
+            //    if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
+            //    {
+            //        return false;
+            //    }
+            //    //    var alivePlayers = self.Players.Where(player => player.state.alive);
+            //    //    return alivePlayers.All(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive);
+            //    //}
+            //}
             return orig(self);
         }
 
@@ -204,25 +192,19 @@ namespace Drown
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
                         drown.currentPoints++;
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score = drown.currentPoints;
+                            }
+                        }
                     }
                 }
-                //for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                //{
-                //    var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                //    if (currentPlayer != null)
-                //    {
-                //        OnlineManager.lobby.clientSettings.TryGetValue(currentPlayer, out var cs);
-                //        if (cs != null)
-                //        {
 
-                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                //            if (clientSettings != null)
-                //            {
-                //                clientSettings.score = drown.currentPoints;
-                //            }
-                //        }
-                //    }
-                //}
 
             }
         }
@@ -247,25 +229,19 @@ namespace Drown
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
                         drown.currentPoints++;
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score = drown.currentPoints;
+                            }
+                        }
                     }
                 }
-                //for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                //{
-                //    var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                //    if (currentPlayer != null)
-                //    {
-                //        OnlineManager.lobby.clientSettings.TryGetValue(currentPlayer, out var cs);
-                //        if (cs != null)
-                //        {
 
-                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                //            if (clientSettings != null)
-                //            {
-                //                clientSettings.score = drown.currentPoints;
-                //            }
-                //        }
-                //    }
-                //}
 
             }
 

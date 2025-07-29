@@ -72,7 +72,16 @@ namespace Drown
                                 if (DrownMode.isDrownMode(arena, out var drown))
                                 {
 
-                                    DrownMode.iOpenedDen = true;
+                                    OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs2);
+                                    if (cs2 != null)
+                                    {
+
+                                        cs2.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                        if (clientSettings != null)
+                                        {
+                                            clientSettings.iOpenedDen = true;
+                                        }
+                                    }
                                     drown.openedDen = true;
                                     for (int j = 0; j < arena.arenaSittingOnlineOrder.Count; j++)
                                     {
@@ -85,7 +94,6 @@ namespace Drown
                                     }
                                 }
                                 game.cameras[0].hud.PlaySound(SoundID.UI_Multiplayer_Player_Revive);
-
                                 break;
                         }
 
@@ -95,6 +103,17 @@ namespace Drown
                             desiredObject.RealizeInRoom();
                         }
                         drown.currentPoints = drown.currentPoints - itemEntry.Value;
+
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score = drown.currentPoints;
+                            }
+                        }
                         didRespawn = false;
 
                     };

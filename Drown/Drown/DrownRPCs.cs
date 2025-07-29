@@ -39,6 +39,16 @@ namespace Drown
                 if (!game.GetArenaGameSession.GameTypeSetup.spearsHitPlayers)
                 {
                     game.cameras[0].hud.PlaySound(SoundID.UI_Multiplayer_Player_Revive);
+                    OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                    if (cs != null)
+                    {
+
+                        cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                        if (clientSettings != null)
+                        {
+                            clientSettings.iOpenedDen = denOpen;
+                        }
+                    }
                 }
             }
         }

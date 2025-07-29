@@ -39,9 +39,6 @@ namespace Drown
 
         public bool isInStore = false;
         public int currentPoints;
-
-        public static bool iOpenedDen = false;
-
         public int spearCost;
         public int spearExplCost;
         public int bombCost;
@@ -75,8 +72,8 @@ namespace Drown
 
         public override void ArenaSessionCtor(ArenaOnlineGameMode arena, On.ArenaGameSession.orig_ctor orig, ArenaGameSession self, RainWorldGame game)
         {
+            base.ArenaSessionCtor(arena, orig, self, game);
             openedDen = false;
-            DrownMode.iOpenedDen = false;
             currentWave = 1;
             currentPoints = 5;
             lastCleanupWave = 0;
@@ -95,6 +92,17 @@ namespace Drown
             foreach (var player in self.arenaSitting.players)
             {
                 player.score = currentPoints;
+                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                if (cs != null)
+                {
+
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null)
+                    {
+                        clientSettings.iOpenedDen = false;
+                        clientSettings.score = currentPoints;
+                    }
+                }
             }
 
         }
@@ -111,6 +119,7 @@ namespace Drown
             self.levelItems = true;
             self.fliesSpawn = true;
             self.saveCreatures = false;
+            self.spearsHitPlayers = ArenaHelpers.GetOptionFromArena("SPEARSHIT", self.spearsHitPlayers);
 
         }
 
@@ -186,6 +195,11 @@ namespace Drown
                     {
                         return "spearSymbol";
                     }
+                    else
+                    {
+                        return "Kill_Slugcat";
+
+                    }
                 }
             }
 
@@ -214,24 +228,59 @@ namespace Drown
 
         public override void ArenaSessionEnded(ArenaMode arena, On.ArenaSitting.orig_SessionEnded orig, ArenaSitting self, ArenaGameSession session, List<ArenaSitting.ArenaPlayer> list)
         {
-            foreach (var player in self.players)
+            if (isDrownMode(arena, out var drown))
             {
-                var onlinePlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, player.playerNumber);
-                if (onlinePlayer != null)
+                foreach (var player in self.players)
                 {
-                    OnlineManager.lobby.clientSettings.TryGetValue(onlinePlayer, out var cs);
-                    if (cs != null)
+                    var onlinePlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, player.playerNumber);
+                    if (onlinePlayer != null)
                     {
-                        if (cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings))
+                        OnlineManager.lobby.clientSettings.TryGetValue(onlinePlayer, out var cs);
+                        if (cs != null)
                         {
-                            player.score = clientSettings.score;
+                            if (cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings))
+                            {
+                                player.score = clientSettings.score;
+                            }
                         }
                     }
                 }
+
+                if (list.Count == 1)
+                {
+                    list[0].winner = list[0].alive;
+                }
+                else if (list.Count > 1)
+                {
+                    if (list[0].alive && list[1].alive)
+                    {
+                        for (int i = 0; i < list.Count; i++)
+                        {
+
+                            var onlinePlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, list[i].playerNumber);
+                            if (onlinePlayer != null)
+                            {
+                                OnlineManager.lobby.clientSettings.TryGetValue(onlinePlayer, out var cs);
+                                if (cs != null)
+                                {
+
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
+                                        list[i].winner = clientSettings.iOpenedDen;
+                                    }
+                                }
+                            }
+
+                        }
+                    }
+                    if (list[0].alive && !list[1].alive)
+                    {
+                        list[0].winner = true;
+                    }
+
+                }
             }
-
-            base.ArenaSessionEnded(arena, orig, self, session, list);
-
         }
 
         public override void ArenaSessionUpdate(ArenaOnlineGameMode arena, ArenaGameSession session)
@@ -242,17 +291,29 @@ namespace Drown
                 {
                     for (int i = 0; i < session.Players.Count; i++)
                     {
-                        if (session.GameTypeSetup.spearsHitPlayers)
+                        var onlinePlayer = OnlinePhysicalObject.map.TryGetValue(session.Players[i], out var onlineP);
+                        if (onlinePlayer)
                         {
-                            if (session.exitManager.IsPlayerInDen(session.Players[i]))
+                            if (session.Players[i].state.alive)
                             {
-                                session.EndSession();
-                            }
-                        }
+                                bool openedDen = false;
+                                OnlineManager.lobby.clientSettings.TryGetValue(onlineP.owner, out var cs);
+                                if (cs != null)
+                                {
 
-                        if (!OnlinePhysicalObject.map.TryGetValue(session.Players[i], out var onlineP) || session.Players[i].state.dead)
-                        {
-                            session.Players.Remove(session.Players[i]);
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
+                                        openedDen = clientSettings.iOpenedDen;
+                                    }
+                                }
+
+                                if (drown.openedDen && !openedDen && session.Players[i] != null && session.Players[i].realizedCreature != null && session.Players[i].realizedCreature.State.alive && session.GameTypeSetup.spearsHitPlayers)
+                                {
+                                    session.game.cameras[0].hud.PlaySound(SoundID.UI_Slugcat_Die);
+                                    session.Players[i].realizedCreature.Die();
+                                }
+                            }
                         }
 
                     }
@@ -294,6 +355,7 @@ namespace Drown
                     waveNeedsUpdate = false;
                 }
             }
+            base.ArenaSessionUpdate(arena, session);
 
         }
 
