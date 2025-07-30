@@ -39,13 +39,13 @@ namespace Drown
 
         public bool isInStore = false;
         public int currentPoints;
-        public int spearCost;
-        public int spearExplCost;
-        public int bombCost;
-        public int respCost;
-        public int denCost;
-        public int maxCreatures;
-        public int creatureCleanupWaves;
+        public int spearCost = DrownMod.drownOptions.PointsForSpear.Value;
+        public int spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
+        public int bombCost = DrownMod.drownOptions.PointsForBomb.Value;
+        public int respCost = DrownMod.drownOptions.PointsForRespawn.Value;
+        public int denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
+        public int maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
+        public int creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
         public int teamSharedScore;
 
         private int _timerDuration;
@@ -77,17 +77,6 @@ namespace Drown
             currentWave = 1;
             currentPoints = 5;
             lastCleanupWave = 0;
-
-            if (OnlineManager.lobby.isOwner)
-            {
-                spearCost = DrownMod.drownOptions.PointsForSpear.Value;
-                spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
-                bombCost = DrownMod.drownOptions.PointsForBomb.Value;
-                respCost = DrownMod.drownOptions.PointsForRespawn.Value;
-                denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
-                maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
-                creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
-            }
 
             foreach (var player in self.arenaSitting.players)
             {
@@ -320,8 +309,7 @@ namespace Drown
 
                     if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
                     {
-                        var greatestPlayer = session.arenaSitting.players.OrderByDescending(p => p.score).FirstOrDefault();
-                        drown.teamSharedScore = greatestPlayer.score;
+                        drown.teamSharedScore = session.arenaSitting.players.Sum(p => p.score);
                     }
 
 
