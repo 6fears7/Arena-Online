@@ -4,28 +4,26 @@ namespace Drown
 {
     public static class DrownModeRPCs
     {
-        [RainMeadow.RPCMethod]
-        public static void Arena_IncrementPlayerScore(RPCEvent rpcEvent, int score, ushort userWhoScored)
+        [RPCMethod]
+        public static void Arena_IncrementPlayerShareScore(RPCEvent rpcEvent)
         {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena))
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
                 {
                     return;
                 }
-                if (!game.GetArenaGameSession.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
+                foreach (var player in game.GetArenaGameSession.arenaSitting.players)
                 {
-                    DrownMode.currentPoints++;
+                    player.score = drown.teamSharedScore;
                 }
-                var oe = ArenaHelpers.FindOnlinePlayerByLobbyId(userWhoScored);
-                var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, oe);
-                game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = score;
+
             }
         }
 
-        [RainMeadow.RPCMethod]
-        public static void Arena_OpenDen(RPCEvent rpcEvent, bool denOpen)
+        [RPCMethod]
+        public static void Arena_OpenDen(bool denOpen)
         {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
@@ -39,9 +37,21 @@ namespace Drown
                 if (!game.GetArenaGameSession.GameTypeSetup.spearsHitPlayers)
                 {
                     game.cameras[0].hud.PlaySound(SoundID.UI_Multiplayer_Player_Revive);
+                    OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                    if (cs != null)
+                    {
+
+                        cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                        if (clientSettings != null)
+                        {
+                            clientSettings.iOpenedDen = denOpen;
+                        }
+                    }
                 }
             }
         }
-
     }
 }
+
+//    }
+//}
