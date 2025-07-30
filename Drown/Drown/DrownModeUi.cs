@@ -57,7 +57,7 @@ namespace RainMeadow.UI.Components
             UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
 
             var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a spear", new Vector2(10f, maxCTextBox.pos.y - 15), new Vector2(0, 20), false);
-            pointsForSpearTextBox = new(new Configurable<int>(drown.spearCost), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
+            pointsForSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForSpear.Value), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
                 greyedOut = OwnerSettingsDisabled

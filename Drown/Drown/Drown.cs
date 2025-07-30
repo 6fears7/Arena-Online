@@ -115,7 +115,18 @@ namespace Drown
         public override string TimerText()
         {
             var waveTimer = ArenaPrepTimer.FormatTime(currentWaveTimer);
-            return $": Current points: {currentPoints}. Current Wave: {currentWave}. Next wave: {waveTimer}";
+            OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+            var points = 0;
+            if (cs != null)
+            {
+
+                cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                if (clientSettings != null)
+                {
+                    points = clientSettings.score;
+                }
+            }
+            return $": Current points: {points}. Current Wave: {currentWave}. Next wave: {waveTimer}";
         }
 
         public override int SetTimer(ArenaOnlineGameMode arena)
@@ -307,10 +318,54 @@ namespace Drown
 
                     }
 
-                    if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
-                    {
-                        drown.teamSharedScore = session.arenaSitting.players.Sum(p => p.score);
-                    }
+                    //if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
+                    //{
+                    //    var points = 0;
+
+                    //    arena.arenaSittingOnlineOrder.ForEach(x =>
+                    //    {
+
+                    //        OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                    //        if (p != null)
+                    //        {
+                    //            OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                    //            if (cs != null)
+                    //            {
+
+                    //                cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    //                if (clientSettings != null)
+                    //                {
+                    //                    points += clientSettings.score; 
+                    //                }
+                    //            }
+                    //        }
+
+                    //    });
+                    //    drown.teamSharedScore = points; 
+
+
+                    //    arena.arenaSittingOnlineOrder.ForEach(x =>
+                    //{
+
+                    //    OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                    //    if (p != null)
+                    //    {
+                    //        OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                    //        if (cs != null)
+                    //        {
+
+                    //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    //            if (clientSettings != null)
+                    //            {
+                    //                clientSettings.score = drown.teamSharedScore;
+                    //            }
+                    //        }
+                    //    }
+
+                    //});
+                    //}
+
+
 
 
                 }

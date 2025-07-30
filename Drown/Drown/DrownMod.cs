@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.3.3")]
+    [BepInPlugin("uo.drown", "Drown", "0.4.0")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -104,7 +104,7 @@ namespace Drown
                 {
                     if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
                     {
-                        drown.currentPoints++;
+
                         OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                         if (cs != null)
                         {
@@ -112,7 +112,7 @@ namespace Drown
                             cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                             if (clientSettings != null)
                             {
-                                clientSettings.score = drown.currentPoints;
+                                clientSettings.score++;
                             }
                         }
                     }
@@ -135,7 +135,16 @@ namespace Drown
             }
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-                drown.currentPoints = drown.currentPoints - 1;
+                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                if (cs != null)
+                {
+
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null)
+                    {
+                        clientSettings.score = clientSettings.score - 1;
+                    }
+                }
             }
 
         }
@@ -144,11 +153,21 @@ namespace Drown
         {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-                //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
-                //{
-                if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
+                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                if (cs != null)
                 {
-                    return false;
+
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null)
+                    {
+
+                        //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
+                        //{
+                        if (clientSettings.score >= drown.respCost && !drown.openedDen) // We can still respawn
+                        {
+                            return false;
+                        }
+                    }
                 }
 
                 //var alivePlayers = self.Players.Where(player => player.state.alive);
@@ -191,7 +210,6 @@ namespace Drown
                 {
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
-                        drown.currentPoints++;
                         OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                         if (cs != null)
                         {
@@ -199,7 +217,7 @@ namespace Drown
                             cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                             if (clientSettings != null)
                             {
-                                clientSettings.score = drown.currentPoints;
+                                clientSettings.score++;
                             }
                         }
                     }
