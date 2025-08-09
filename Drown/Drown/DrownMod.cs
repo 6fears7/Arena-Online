@@ -52,6 +52,7 @@ namespace Drown
                 On.ArenaGameSession.ShouldSessionEnd += ArenaGameSession_ShouldSessionEnd;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
+                On.ArenaGameSession.PlayersStillActive += ArenaGameSession_PlayersStillActive;
                 new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), (Action<Lobby> orig, Lobby self) =>
                 {
                     orig(self);
@@ -70,6 +71,42 @@ namespace Drown
                 Logger.LogError(e);
                 fullyInit = false;
             }
+        }
+
+        private int ArenaGameSession_PlayersStillActive(On.ArenaGameSession.orig_PlayersStillActive orig, ArenaGameSession self, bool addToAliveTime, bool dontCountSandboxLosers)
+        {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
+            {
+                var count = 0;
+                foreach (var p in arena.arenaSittingOnlineOrder)
+                {
+                    OnlinePlayer? pl = ArenaHelpers.FindOnlinePlayerByLobbyId(p);
+                    if (pl != null)
+                    {
+                        OnlineManager.lobby.clientSettings.TryGetValue(pl, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+
+                                //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
+                                //{
+                                if (clientSettings.score >= drown.respCost && !drown.openedDen) // We can still respawn
+                                {
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                }
+                return count;
+
+                //var alivePlayers = self.Players.Where(player => player.state.alive);
+
+            }
+            return orig(self, addToAliveTime, dontCountSandboxLosers);
         }
 
         private void Menu_ctor(On.Menu.Menu.orig_ctor orig, Menu.Menu self, ProcessManager manager, ProcessManager.ProcessID ID)

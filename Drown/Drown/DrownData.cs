@@ -41,8 +41,7 @@ namespace RainMeadow
             int maxCreatures;
             [OnlineField]
             int creatureCleanupWaves;
-            [OnlineField]
-            int teamSharedScore;
+
             [OnlineField]
             bool densOpened;
             public State() { }
@@ -64,7 +63,6 @@ namespace RainMeadow
                     denCost = drownData.denCost;
                     maxCreatures = drownData.maxCreatures;
                     creatureCleanupWaves = drownData.creatureCleanupWaves;
-                    teamSharedScore = drownData.teamSharedScore;
 
                 }
 
@@ -88,8 +86,7 @@ namespace RainMeadow
                     drownData.respCost = respCost;
                     drownData.denCost = denCost;
                     drownData.maxCreatures = maxCreatures;
-                    drownData.creatureCleanupWaves = creatureCleanupWaves;
-                    drownData.teamSharedScore = teamSharedScore;
+                    drownData.creatureCleanupWaves = creatureCleanupWaves;                    
 
                 }
             }

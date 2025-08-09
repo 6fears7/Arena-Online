@@ -46,7 +46,6 @@ namespace Drown
         public int denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
         public int maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
         public int creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
-        public int teamSharedScore;
 
         private int _timerDuration;
         public bool openedDen = false;
@@ -318,55 +317,51 @@ namespace Drown
 
                     }
 
-                    //if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
-                    //{
-                    //    var points = 0;
+                    if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
+                    {
+                        var points = 0;
 
-                    //    arena.arenaSittingOnlineOrder.ForEach(x =>
-                    //    {
+                        arena.arenaSittingOnlineOrder.ForEach(x =>
+                        {
 
-                    //        OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
-                    //        if (p != null)
-                    //        {
-                    //            OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
-                    //            if (cs != null)
-                    //            {
+                            OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                            if (p != null)
+                            {
+                                OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                                if (cs != null)
+                                {
 
-                    //                cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                    //                if (clientSettings != null)
-                    //                {
-                    //                    points += clientSettings.score; 
-                    //                }
-                    //            }
-                    //        }
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
 
-                    //    });
-                    //    drown.teamSharedScore = points; 
-
-
-                    //    arena.arenaSittingOnlineOrder.ForEach(x =>
-                    //{
-
-                    //    OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
-                    //    if (p != null)
-                    //    {
-                    //        OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
-                    //        if (cs != null)
-                    //        {
-
-                    //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                    //            if (clientSettings != null)
-                    //            {
-                    //                clientSettings.score = drown.teamSharedScore;
-                    //            }
-                    //        }
-                    //    }
-
-                    //});
-                    //}
+                                        points += clientSettings.score;
+                                    }
+                                }
+                            }
+                        });
 
 
+                        arena.arenaSittingOnlineOrder.ForEach(x =>
+                      {
 
+                          OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                          if (p != null)
+                          {
+                              OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                              if (cs != null)
+                              {
+
+                                  cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                  if (clientSettings != null)
+                                  {
+                                      clientSettings.teamScore = points; 
+                                  }
+                              }
+                          }
+
+                      });
+                    }
 
                 }
 
