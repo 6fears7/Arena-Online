@@ -273,7 +273,7 @@ namespace Drown
             {
                 exitList.Add(i);
             }
-
+            game.Players.Clear();
             arena.avatars.Clear();
             arena.externalArenaGameMode.SpawnPlayer(arena, game, game.room, exitList);
 

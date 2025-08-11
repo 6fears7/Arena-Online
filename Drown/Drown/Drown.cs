@@ -26,6 +26,11 @@ namespace Drown
 
         }
 
+        public override Dialog AddGameModeInfo(ArenaOnlineGameMode arena, Menu.Menu menu)
+        {
+            return new DialogNotify(menu.LongTranslate("You will not survive the DROWN."), new Vector2(500f, 400f), menu.manager, () => { menu.PlaySound(SoundID.MENU_Button_Standard_Button_Pressed); });
+        }
+
         public static bool isDrownMode(ArenaOnlineGameMode arena, out DrownMode mode)
         {
             mode = null;
@@ -37,8 +42,8 @@ namespace Drown
             return false;
         }
 
+        private bool spearHits;
         public bool isInStore = false;
-        public int currentPoints;
         public int spearCost = DrownMod.drownOptions.PointsForSpear.Value;
         public int spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
         public int bombCost = DrownMod.drownOptions.PointsForBomb.Value;
@@ -74,12 +79,11 @@ namespace Drown
             base.ArenaSessionCtor(arena, orig, self, game);
             openedDen = false;
             currentWave = 1;
-            currentPoints = 5;
             lastCleanupWave = 0;
 
             foreach (var player in self.arenaSitting.players)
             {
-                player.score = currentPoints;
+                player.score = 5;
                 OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                 if (cs != null)
                 {
@@ -88,7 +92,7 @@ namespace Drown
                     if (clientSettings != null)
                     {
                         clientSettings.iOpenedDen = false;
-                        clientSettings.score = currentPoints;
+                        clientSettings.score = 5;
                     }
                 }
             }
@@ -108,6 +112,7 @@ namespace Drown
             self.fliesSpawn = true;
             self.saveCreatures = false;
             self.spearsHitPlayers = ArenaHelpers.GetOptionFromArena("SPEARSHIT", self.spearsHitPlayers);
+            spearHits = self.spearsHitPlayers;
 
         }
 
@@ -122,10 +127,11 @@ namespace Drown
                 cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                 if (clientSettings != null)
                 {
-                    points = clientSettings.score;
+                    points = !spearHits ? clientSettings.teamScore : clientSettings.score;
                 }
             }
-            return $": Current points: {points}. Current Wave: {currentWave}. Next wave: {waveTimer}";
+            var text = !spearHits ? "Team points" : "Current points";
+            return $": {text}: {points}. Current Wave: {currentWave}. Next wave: {waveTimer}";
         }
 
         public override int SetTimer(ArenaOnlineGameMode arena)
@@ -202,14 +208,21 @@ namespace Drown
                 }
             }
 
+
             return base.AddIcon(arena, owner, customization, player);
         }
 
-
-        public override Dialog AddGameModeInfo(ArenaOnlineGameMode arena, Menu.Menu menu)
+        public override Color IconColor(ArenaMode arena, OnlinePlayerDisplay display, PlayerSpecificOnlineHud owner, SlugcatCustomization customization, OnlinePlayer player)
         {
-            return base.AddGameModeInfo(arena, menu);
+            if (owner.PlayerConsideredDead)
+            {
+                return Color.grey;
+            }
+
+            return base.IconColor(arena, display, owner, customization, player);
         }
+
+
 
         public override void OnUIEnabled(ArenaOnlineLobbyMenu menu)
         {
@@ -316,7 +329,6 @@ namespace Drown
                         }
 
                     }
-
                     if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
                     {
                         var points = 0;
@@ -355,7 +367,7 @@ namespace Drown
                                   cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                                   if (clientSettings != null)
                                   {
-                                      clientSettings.teamScore = points; 
+                                      clientSettings.teamScore = points;
                                   }
                               }
                           }
@@ -369,16 +381,16 @@ namespace Drown
                 {
                     if (currentWaveTimer % waveStart == 0 && session.playersSpawned && waveNeedsUpdate)
                     {
-                        var notSlugcatCount = 0;
+                        var creatureAlive = 0;
                         for (int i = 0; i < session.room.abstractRoom.creatures.Count; i++)
                         {
-                            if (session.room.abstractRoom.creatures[i].creatureTemplate.type != CreatureTemplate.Type.Slugcat && session.room.abstractRoom.creatures[i].state.alive)
+                            if (session.room.abstractRoom.creatures[i].state.alive)
                             {
-                                notSlugcatCount++;
+                                creatureAlive++;
                             }
 
                         }
-                        if (notSlugcatCount < maxCreatures)
+                        if (creatureAlive < maxCreatures)
                         {
                             session.SpawnCreatures();
                         }
@@ -396,6 +408,8 @@ namespace Drown
             base.ArenaSessionUpdate(arena, session);
 
         }
+
+        
 
         private void CreatureCleanup(ArenaOnlineGameMode arena, ArenaGameSession session)
         {

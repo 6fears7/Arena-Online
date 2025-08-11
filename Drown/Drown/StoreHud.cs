@@ -23,7 +23,7 @@ namespace Drown
 
             if (RainMeadow.RainMeadow.isArenaMode(out var arena))
             {
-                if (Input.GetKeyDown(RainMeadow.RainMeadow.rainMeadowOptions.SpectatorKey.Value))
+                if (Input.GetKeyDown(DrownMod.drownOptions.OpenStore.Value))
                 {
                     if (storeOverlay == null)
                     {

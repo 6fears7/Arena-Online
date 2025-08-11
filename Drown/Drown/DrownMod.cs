@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.4.0")]
+    [BepInPlugin("uo.drown", "Drown", "0.4.2")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -49,7 +49,6 @@ namespace Drown
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
                 On.Creature.Violence += Creature_Violence;
                 On.Lizard.Violence += Lizard_Violence;
-                On.ArenaGameSession.ShouldSessionEnd += ArenaGameSession_ShouldSessionEnd;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
                 On.ArenaGameSession.PlayersStillActive += ArenaGameSession_PlayersStillActive;
@@ -73,10 +72,13 @@ namespace Drown
             }
         }
 
+
         private int ArenaGameSession_PlayersStillActive(On.ArenaGameSession.orig_PlayersStillActive orig, ArenaGameSession self, bool addToAliveTime, bool dontCountSandboxLosers)
         {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
+                bool teamWork = !self.GameTypeSetup.spearsHitPlayers;
+
                 var count = 0;
                 foreach (var p in arena.arenaSittingOnlineOrder)
                 {
@@ -91,9 +93,7 @@ namespace Drown
                             if (clientSettings != null)
                             {
 
-                                //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
-                                //{
-                                if (clientSettings.score >= drown.respCost && !drown.openedDen) // We can still respawn
+                                if ((teamWork ? clientSettings.teamScore : clientSettings.score) >= drown.respCost && !drown.openedDen) // We can still respawn
                                 {
                                     count++;
                                 }
@@ -101,9 +101,12 @@ namespace Drown
                         }
                     }
                 }
-                return count;
+                if (self.Players.FindAll(x => x.state.alive).Count == 0)
+                {
+                    return count;
+                }
 
-                //var alivePlayers = self.Players.Where(player => player.state.alive);
+
 
             }
             return orig(self, addToAliveTime, dontCountSandboxLosers);
@@ -186,58 +189,16 @@ namespace Drown
 
         }
 
-        private bool ArenaGameSession_ShouldSessionEnd(On.ArenaGameSession.orig_ShouldSessionEnd orig, ArenaGameSession self)
-        {
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
-            {
-                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                if (cs != null)
-                {
-
-                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                    if (clientSettings != null)
-                    {
-
-                        //if (self.GameTypeSetup.spearsHitPlayers) // Competitive
-                        //{
-                        if (clientSettings.score >= drown.respCost && !drown.openedDen) // We can still respawn
-                        {
-                            return false;
-                        }
-                    }
-                }
-
-                //var alivePlayers = self.Players.Where(player => player.state.alive);
-
-            }
-            //    return alivePlayers.Any(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive); // Dens are opened and we have no money. Did anyone beat us there or is everyone dead?
-
-            //}
-
-            //if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
-            //{
-
-            //    if (drown.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
-            //    {
-            //        return false;
-            //    }
-            //    //    var alivePlayers = self.Players.Where(player => player.state.alive);
-            //    //    return alivePlayers.All(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive);
-            //    //}
-            //}
-            return orig(self);
-        }
-
         private void Lizard_Violence(On.Lizard.orig_Violence orig, Lizard self, BodyChunk source, UnityEngine.Vector2? directionAndMomentum, BodyChunk hitChunk, PhysicalObject.Appendage.Pos onAppendagePos, Creature.DamageType type, float damage, float stunBonus)
         {
             orig(self, source, directionAndMomentum, hitChunk, onAppendagePos, type, damage, stunBonus);
-            if (self.State.dead)
-            {
-                return;
-            }
+
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-
+                if (self.State.dead)
+                {
+                    return;
+                }
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
                 {
@@ -268,12 +229,12 @@ namespace Drown
         {
             orig(self, source, directionAndMomentum, hitChunk, hitAppendage, type, damage, stunBonus);
 
-            if (self.State.dead)
-            {
-                return;
-            }
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
+                if (self.State.dead)
+                {
+                    return;
+                }
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
                 {
@@ -283,7 +244,6 @@ namespace Drown
                 {
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
-                        drown.currentPoints++;
                         OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                         if (cs != null)
                         {
@@ -291,16 +251,15 @@ namespace Drown
                             cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                             if (clientSettings != null)
                             {
-                                clientSettings.score = drown.currentPoints;
+                                clientSettings.score++;
                             }
                         }
                     }
                 }
 
-
             }
 
-
+           
         }
 
         private void TextPrompt_AddMessage_string_int_int_bool_bool(On.HUD.TextPrompt.orig_AddMessage_string_int_int_bool_bool orig, HUD.TextPrompt self, string text, int wait, int time, bool darken, bool hideHud)

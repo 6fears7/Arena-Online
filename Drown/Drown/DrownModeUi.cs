@@ -65,6 +65,8 @@ namespace RainMeadow.UI.Components
             pointsForSpearTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
                 DROWN.spearCost = pointsForSpearTextBox.valueInt;
+                DrownMod.drownOptions.PointsForSpear.Value = pointsForSpearTextBox.valueInt;
+
             };
             UIelementWrapper pointsForSpearTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForSpearTextBox);
 
@@ -92,6 +94,8 @@ namespace RainMeadow.UI.Components
             pointsForBombTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
                 DROWN.bombCost = pointsForBombTextBox.valueInt;
+                DrownMod.drownOptions.PointsForBomb.Value = pointsForBombTextBox.valueInt;
+
             };
             UIelementWrapper pointsForBombTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForBombTextBox);
 
@@ -104,6 +108,8 @@ namespace RainMeadow.UI.Components
             pointsForRespawnTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
                 DROWN.respCost = pointsForRespawnTextBox.valueInt;
+                DrownMod.drownOptions.PointsForRespawn.Value = pointsForRespawnTextBox.valueInt;
+
             };
             UIelementWrapper pointsForRespawnTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForRespawnTextBox);
 
@@ -116,6 +122,8 @@ namespace RainMeadow.UI.Components
             pointsForDenOpenTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
                 DROWN.denCost = pointsForDenOpenTextBox.valueInt;
+                DrownMod.drownOptions.PointsForDenOpen.Value = pointsForDenOpenTextBox.valueInt;
+
             };
             UIelementWrapper pointsForDenOpenTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForDenOpenTextBox);
 
@@ -128,6 +136,8 @@ namespace RainMeadow.UI.Components
             creatureCleanupsTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
                 DROWN.creatureCleanupWaves = creatureCleanupsTextBox.valueInt;
+                DrownMod.drownOptions.CreatureCleanup.Value = creatureCleanupsTextBox.valueInt;
+
             };
             UIelementWrapper creatureCleanupsTextBoxWrapper = new UIelementWrapper(tabWrapper, creatureCleanupsTextBox);
 
@@ -166,14 +176,6 @@ namespace RainMeadow.UI.Components
         {
             if (!(OnlineManager.lobby?.isOwner == true)) return;
 
-            DrownMod.drownOptions.MaxCreatureCount.Value = DROWN.maxCreatures;
-            DrownMod.drownOptions.PointsForSpear.Value = DROWN.spearCost;
-            DrownMod.drownOptions.PointsForExplSpear.Value = DROWN.spearExplCost;
-            DrownMod.drownOptions.PointsForBomb.Value = DROWN.bombCost;
-            DrownMod.drownOptions.PointsForRespawn.Value = DROWN.respCost;
-            DrownMod.drownOptions.PointsForDenOpen.Value = DROWN.denCost;
-            DrownMod.drownOptions.CreatureCleanup.Value = DROWN.creatureCleanupWaves;
-
         }
         public void CreatePageButtons()
         {
@@ -196,6 +198,34 @@ namespace RainMeadow.UI.Components
         {
             base.Update();
 
+            if (maxCTextBox != null)
+            {
+                maxCTextBox.valueInt = DROWN.maxCreatures;
+            }
+            if (pointsForSpearTextBox != null)
+            {
+                pointsForSpearTextBox.valueInt = DROWN.spearCost;
+            }
+            if (pointsForExplSpearTextBox != null)
+            {
+                pointsForExplSpearTextBox.valueInt = DROWN.spearExplCost;
+            }
+            if (pointsForBombTextBox != null)
+            {
+                pointsForBombTextBox.valueInt = DROWN.bombCost;
+            }
+            if (pointsForRespawnTextBox != null)
+            {
+                pointsForRespawnTextBox.valueInt = DROWN.respCost;
+            }
+            if (pointsForDenOpenTextBox != null)
+            {
+                pointsForDenOpenTextBox.valueInt = DROWN.denCost;
+            }
+            if (creatureCleanupsTextBox != null)
+            {
+                creatureCleanupsTextBox.valueInt = DROWN.creatureCleanupWaves;
+            }
 
         }
 
