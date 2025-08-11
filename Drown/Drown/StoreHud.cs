@@ -1,4 +1,5 @@
 ﻿using HUD;
+using RainMeadow;
 using UnityEngine;
 namespace Drown
 {
@@ -22,19 +23,40 @@ namespace Drown
 
             if (RainMeadow.RainMeadow.isArenaMode(out var arena))
             {
-                if (Input.GetKeyDown(RainMeadow.RainMeadow.rainMeadowOptions.SpectatorKey.Value))
+                if (Input.GetKeyDown(DrownMod.drownOptions.OpenStore.Value))
                 {
                     if (storeOverlay == null)
                     {
                         RainMeadow.RainMeadow.Debug("Creating storeOverlay overlay");
                         storeOverlay = new StoreOverlay(game.manager, game, drown, arena);
                         this.drown.isInStore = true;
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.isInStore = true;
+                            }
+                        }
+
 
                     }
                     else
                     {
                         RainMeadow.RainMeadow.Debug("storeOverlay destroy!");
                         this.drown.isInStore = false;
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.isInStore = false;
+                            }
+                        }
                         storeOverlay.ShutDownProcess();
                         storeOverlay = null;
                     }

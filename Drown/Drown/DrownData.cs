@@ -15,7 +15,6 @@ namespace RainMeadow
         public int respCost;
         public int denCost;
         public int maxCreatures;
-
         public bool densOpened;
         public override ResourceDataState MakeState(OnlineResource resource)
         {
@@ -87,7 +86,7 @@ namespace RainMeadow
                     drownData.respCost = respCost;
                     drownData.denCost = denCost;
                     drownData.maxCreatures = maxCreatures;
-                    drownData.creatureCleanupWaves = creatureCleanupWaves;
+                    drownData.creatureCleanupWaves = creatureCleanupWaves;                    
 
                 }
             }

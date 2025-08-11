@@ -6,12 +6,31 @@ using System.Linq;
 using UnityEngine;
 using Menu.Remix.MixedUI;
 using System.Collections.Generic;
+using RainMeadow.Arena.ArenaOnlineGameModes.TeamBattle;
+using ArenaMode = RainMeadow.ArenaOnlineGameMode;
+using RainMeadow.UI;
+
 namespace Drown
 {
-    public class DrownMode : ExternalArenaGameMode
+    public partial class DrownMode : ExternalArenaGameMode
     {
 
         public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: true);
+        public override ArenaSetup.GameTypeID GetGameModeId
+        {
+            get
+            {
+                return Drown;
+            }
+            set { GetGameModeId = value; }
+
+        }
+
+        public override Dialog AddGameModeInfo(ArenaOnlineGameMode arena, Menu.Menu menu)
+        {
+            return new DialogNotify(menu.LongTranslate("You will not survive the DROWN."), new Vector2(500f, 400f), menu.manager, () => { menu.PlaySound(SoundID.MENU_Button_Standard_Button_Pressed); });
+        }
+
         public static bool isDrownMode(ArenaOnlineGameMode arena, out DrownMode mode)
         {
             mode = null;
@@ -23,18 +42,15 @@ namespace Drown
             return false;
         }
 
+        private bool spearHits;
         public bool isInStore = false;
-
-        public static int currentPoints;
-        public static bool iOpenedDen = false;
-
-        public int spearCost;
-        public int spearExplCost;
-        public int bombCost;
-        public int respCost;
-        public int denCost;
-        public int maxCreatures;
-        public int creatureCleanupWaves;
+        public int spearCost = DrownMod.drownOptions.PointsForSpear.Value;
+        public int spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
+        public int bombCost = DrownMod.drownOptions.PointsForBomb.Value;
+        public int respCost = DrownMod.drownOptions.PointsForRespawn.Value;
+        public int denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
+        public int maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
+        public int creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
 
         private int _timerDuration;
         public bool openedDen = false;
@@ -43,6 +59,8 @@ namespace Drown
         public int currentWave = 0;
         public int lastCleanupWave = 0;
         public bool waveNeedsUpdate = true;
+        public DrownInterface? drownInterface;
+        public TabContainer.Tab? myTab;
 
         public override bool IsExitsOpen(ArenaOnlineGameMode arena, On.ArenaBehaviors.ExitManager.orig_ExitsOpen orig, ArenaBehaviors.ExitManager self)
         {
@@ -58,26 +76,25 @@ namespace Drown
 
         public override void ArenaSessionCtor(ArenaOnlineGameMode arena, On.ArenaGameSession.orig_ctor orig, ArenaGameSession self, RainWorldGame game)
         {
+            base.ArenaSessionCtor(arena, orig, self, game);
             openedDen = false;
-            DrownMode.iOpenedDen = false;
             currentWave = 1;
-            currentPoints = 5;
             lastCleanupWave = 0;
-
-            if (OnlineManager.lobby.isOwner)
-            {
-                spearCost = DrownMod.drownOptions.PointsForSpear.Value;
-                spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
-                bombCost = DrownMod.drownOptions.PointsForBomb.Value;
-                respCost = DrownMod.drownOptions.PointsForRespawn.Value;
-                denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
-                maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
-                creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
-            }
 
             foreach (var player in self.arenaSitting.players)
             {
-                player.score = currentPoints;
+                player.score = 5;
+                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                if (cs != null)
+                {
+
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null)
+                    {
+                        clientSettings.iOpenedDen = false;
+                        clientSettings.score = 5;
+                    }
+                }
             }
 
         }
@@ -94,13 +111,27 @@ namespace Drown
             self.levelItems = true;
             self.fliesSpawn = true;
             self.saveCreatures = false;
+            self.spearsHitPlayers = ArenaHelpers.GetOptionFromArena("SPEARSHIT", self.spearsHitPlayers);
+            spearHits = self.spearsHitPlayers;
 
         }
 
         public override string TimerText()
         {
             var waveTimer = ArenaPrepTimer.FormatTime(currentWaveTimer);
-            return $": Current points: {currentPoints}. Current Wave: {currentWave}. Next wave: {waveTimer}";
+            OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+            var points = 0;
+            if (cs != null)
+            {
+
+                cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                if (clientSettings != null)
+                {
+                    points = !spearHits ? clientSettings.teamScore : clientSettings.score;
+                }
+            }
+            var text = !spearHits ? "Team points" : "Current points";
+            return $": {text}: {points}. Current Wave: {currentWave}. Next wave: {waveTimer}";
         }
 
         public override int SetTimer(ArenaOnlineGameMode arena)
@@ -155,178 +186,230 @@ namespace Drown
         {
             return arena.countdownInitiatedHoldFire = false;
         }
-        public override string AddCustomIcon(ArenaOnlineGameMode arena, PlayerSpecificOnlineHud hud)
+
+        public override string AddIcon(ArenaOnlineGameMode arena, PlayerSpecificOnlineHud owner, SlugcatCustomization customization, OnlinePlayer player)
         {
-            if (isInStore && hud.clientSettings.owner == OnlineManager.mePlayer)
+            if (player != null)
             {
-                return "spearSymbol";
+                OnlineManager.lobby.clientSettings.TryGetValue(player, out var cs);
+                if (cs != null)
+                {
 
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null && clientSettings.isInStore)
+                    {
+                        return "spearSymbol";
+                    }
+                    else
+                    {
+                        return "Kill_Slugcat";
+
+                    }
+                }
             }
-            else
+
+
+            return base.AddIcon(arena, owner, customization, player);
+        }
+
+        public override Color IconColor(ArenaMode arena, OnlinePlayerDisplay display, PlayerSpecificOnlineHud owner, SlugcatCustomization customization, OnlinePlayer player)
+        {
+            if (owner.PlayerConsideredDead)
             {
-                return base.AddCustomIcon(arena, hud);
+                return Color.grey;
             }
+
+            return base.IconColor(arena, display, owner, customization, player);
         }
 
-        public override DialogNotify AddGameModeInfo(Menu.Menu menu)
+
+
+        public override void OnUIEnabled(ArenaOnlineLobbyMenu menu)
         {
-            return new DialogNotify(menu.LongTranslate("Killing enemies grants points. Points buy weapons and ultimately...your escape"), new UnityEngine.Vector2(500f, 400f), menu.manager, () => { menu.PlaySound(SoundID.MENU_Button_Standard_Button_Pressed); });
+            base.OnUIEnabled(menu);
+            myTab = menu.arenaMainLobbyPage.tabContainer.AddTab(menu.Translate("Drown Settings"));
+            myTab.AddObjects(drownInterface = new DrownInterface((ArenaMode)OnlineManager.lobby.gameMode, this, myTab.menu, myTab, new(0, 0), menu.arenaMainLobbyPage.tabContainer.size));
         }
-
-        public override string AddGameSettingsTab()
+        public override void OnUIDisabled(ArenaOnlineLobbyMenu menu)
         {
-            return "Drown";
+            base.OnUIDisabled(menu);
+            drownInterface?.OnShutdown();
+            if (myTab != null) menu.arenaMainLobbyPage.tabContainer.RemoveTab(myTab);
+            myTab = null;
         }
-        public OpTextBox? maxCreaturesTextBox;
-        public OpTextBox? maxCTextBox;
-        public OpTextBox? pointsForSpearTextBox;
-        public OpTextBox? pointsForExplSpearTextBox;
-        public OpTextBox? pointsForBombTextBox;
-        public OpTextBox? pointsForRespawnTextBox;
-        public OpTextBox? pointsForDenOpenTextBox;
-        public OpTextBox? creatureCleanupsTextBox;
 
-        public override void ArenaExternalGameModeSettingsInterface_ctor(ArenaOnlineGameMode arena, OnlineArenaExternalGameModeSettingsInterface extComp, Menu.Menu menu, MenuObject owner, MenuTabWrapper tabWrapper, Vector2 pos, float settingsWidth = 300)
+        public override void ArenaSessionEnded(ArenaMode arena, On.ArenaSitting.orig_SessionEnded orig, ArenaSitting self, ArenaGameSession session, List<ArenaSitting.ArenaPlayer> list)
         {
             if (isDrownMode(arena, out var drown))
             {
-
-
-                var maxCLLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Max creatures in level", new Vector2(10f, 400), new Vector2(0, 20), false);
-                maxCTextBox = new(new Configurable<int>(DrownMod.drownOptions.MaxCreatureCount.Value), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+                foreach (var player in self.players)
                 {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
+                    var onlinePlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, player.playerNumber);
+                    if (onlinePlayer != null)
+                    {
+                        OnlineManager.lobby.clientSettings.TryGetValue(onlinePlayer, out var cs);
+                        if (cs != null)
+                        {
+                            if (cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings))
+                            {
+                                player.score = clientSettings.score;
+                            }
+                        }
+                    }
+                }
 
-                var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a spear", new Vector2(10f, maxCTextBox.pos.y - 15), new Vector2(0, 20), false);
-                pointsForSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForSpear.Value), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
+                if (list.Count == 1)
                 {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper pointsForSpearTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForSpearTextBox);
-
-                var pointsForExplSpearLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy an explosive spear", new Vector2(10f, pointsForSpearTextBox.pos.y - 15), new Vector2(0, 20), false);
-                pointsForExplSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForExplSpear.Value), new Vector2(10, pointsForExplSpearLabel.pos.y - 25), 160f)
+                    list[0].winner = list[0].alive;
+                }
+                else if (list.Count > 1)
                 {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper pointsForExplSpearTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForExplSpearTextBox);
+                    if (list[0].alive && list[1].alive)
+                    {
+                        for (int i = 0; i < list.Count; i++)
+                        {
 
-                var pointsForBombLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a scav bomb", new Vector2(10f, pointsForExplSpearTextBox.pos.y - 15), new Vector2(0, 20), false);
-                pointsForBombTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForBomb.Value), new Vector2(10, pointsForBombLabel.pos.y - 25), 160f)
-                {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper pointsForBombTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForBombTextBox);
+                            var onlinePlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, list[i].playerNumber);
+                            if (onlinePlayer != null)
+                            {
+                                OnlineManager.lobby.clientSettings.TryGetValue(onlinePlayer, out var cs);
+                                if (cs != null)
+                                {
 
-                var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to buy a respawn", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
-                pointsForRespawnTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForRespawn.Value), new Vector2(10, pointsForRespawnLabel.pos.y - 25), 160f)
-                {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper pointsForRespawnTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForRespawnTextBox);
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
+                                        list[i].winner = clientSettings.iOpenedDen;
+                                    }
+                                }
+                            }
 
-                var pointsForDenOpenLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Points required to open dens", new Vector2(10f, pointsForRespawnTextBox.pos.y - 15), new Vector2(0, 20), false);
-                pointsForDenOpenTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForDenOpen.Value), new Vector2(10, pointsForDenOpenLabel.pos.y - 25), 160f)
-                {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper pointsForDenOpenTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForDenOpenTextBox);
+                        }
+                    }
+                    if (list[0].alive && !list[1].alive)
+                    {
+                        list[0].winner = true;
+                    }
 
-                var creatureCleanupsLabel = new ProperlyAlignedMenuLabel(menu, extComp, "How many waves before creature cleanup", new Vector2(10f, pointsForDenOpenTextBox.pos.y - 15), new Vector2(0, 20), false);
-                creatureCleanupsTextBox = new(new Configurable<int>(DrownMod.drownOptions.CreatureCleanup.Value), new Vector2(10, creatureCleanupsLabel.pos.y - 25), 160f)
-                {
-                    accept = OpTextBox.Accept.Int
-                };
-                UIelementWrapper creatureCleanupsTextBoxWrapper = new UIelementWrapper(tabWrapper, creatureCleanupsTextBox);
-
-                var storeItem1Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy spear (store needs to be open)", new Vector2(260, maxCLLabel.pos.y), new Vector2(0, 20), false);
-                var storeItem1KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem1, new Vector2(260, storeItem1Label.pos.y - 30), new Vector2(150f, 30f));
-                UIelementWrapper storeItem1KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem1KeyBinder);
-
-                var storeItem2Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy explosive spear", new Vector2(260, storeItem1KeyBinder.pos.y - 15), new Vector2(0, 20), false);
-                var storeItem2KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem2, new Vector2(260, storeItem2Label.pos.y - 30), new Vector2(150f, 30f));
-                UIelementWrapper storeItem2KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem2KeyBinder);
-
-                var storeItem3Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy scav bomb", new Vector2(260, storeItem2KeyBinder.pos.y - 15), new Vector2(0, 20), false);
-                var storeItem3KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem3, new Vector2(260, storeItem3Label.pos.y - 30), new Vector2(150f, 30f));
-                UIelementWrapper storeItem3KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem3KeyBinder);
-
-                var storeItem4Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to buy respawn", new Vector2(260, storeItem3KeyBinder.pos.y - 15), new Vector2(0, 20), false);
-                var storeItem4KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem4, new Vector2(260, storeItem4Label.pos.y - 30), new Vector2(150f, 30f));
-                UIelementWrapper storeItem4KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem4KeyBinder);
-
-                var storeItem5Label = new ProperlyAlignedMenuLabel(menu, extComp, "Hot key used to open den", new Vector2(260, storeItem4KeyBinder.pos.y - 15), new Vector2(0, 20), false);
-                var storeItem5KeyBinder = new OpKeyBinder(DrownMod.drownOptions.StoreItem5, new Vector2(260, storeItem5Label.pos.y - 30), new Vector2(150f, 30f));
-                UIelementWrapper storeItem5KeyBinderWrapper = new UIelementWrapper(tabWrapper, storeItem5KeyBinder);
-
-                var openStoreLabel = new ProperlyAlignedMenuLabel(menu, extComp, "Key used to access store", new Vector2(260, storeItem5KeyBinder.pos.y - 15), new Vector2(0, 20), false);
-                var openStoreKeyBinder = new OpKeyBinder(DrownMod.drownOptions.OpenStore, new Vector2(260, openStoreLabel.pos.y - 30), new Vector2(150f, 30f));
-                extComp.SafeAddSubobjects(tabWrapper,  maxCLLabel, maxCTextBoxWrapper,
-                    pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper,
-                    pointsForBombLabel, pointsForBombTextBoxWrapper, pointsForRespawnLabel, pointsForRespawnTextBoxWrapper,
-                    pointsForDenOpenLabel, pointsForDenOpenTextBoxWrapper, creatureCleanupsLabel, creatureCleanupsTextBoxWrapper,
-                    storeItem1Label, storeItem1KeyBinderWrapper, storeItem2Label, storeItem2KeyBinderWrapper,
-                    storeItem3Label, storeItem3KeyBinderWrapper, storeItem4Label, storeItem4KeyBinderWrapper,
-                    storeItem5Label, storeItem5KeyBinderWrapper, openStoreLabel);
+                }
             }
         }
-
 
         public override void ArenaSessionUpdate(ArenaOnlineGameMode arena, ArenaGameSession session)
         {
-
-            if (!session.sessionEnded)
+            if (isDrownMode(arena, out var drown))
             {
-                for (int i = 0; i < session.Players.Count; i++)
+                if (!session.sessionEnded)
                 {
-                    if (session.GameTypeSetup.spearsHitPlayers)
+                    for (int i = 0; i < session.Players.Count; i++)
                     {
-                        if (session.exitManager.IsPlayerInDen(session.Players[i]))
+                        var onlinePlayer = OnlinePhysicalObject.map.TryGetValue(session.Players[i], out var onlineP);
+                        if (onlinePlayer)
                         {
-                            session.EndSession();
-                        }
-                    }
+                            if (session.Players[i].state.alive)
+                            {
+                                bool openedDen = false;
+                                OnlineManager.lobby.clientSettings.TryGetValue(onlineP.owner, out var cs);
+                                if (cs != null)
+                                {
 
-                    if (!OnlinePhysicalObject.map.TryGetValue(session.Players[i], out var onlineP) || session.Players[i].state.dead)
-                    {
-                        session.Players.Remove(session.Players[i]);
-                    }
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
+                                        openedDen = clientSettings.iOpenedDen;
+                                    }
+                                }
 
-                }
-
-            }
-
-            if (!openedDen)
-            {
-                if (currentWaveTimer % waveStart == 0 && session.playersSpawned && waveNeedsUpdate)
-                {
-                    var notSlugcatCount = 0;
-                    for (int i = 0; i < session.room.abstractRoom.creatures.Count; i++)
-                    {
-                        if (session.room.abstractRoom.creatures[i].creatureTemplate.type != CreatureTemplate.Type.Slugcat && session.room.abstractRoom.creatures[i].state.alive)
-                        {
-                            notSlugcatCount++;
+                                if (drown.openedDen && !openedDen && session.Players[i] != null && session.Players[i].realizedCreature != null && session.Players[i].realizedCreature.State.alive && session.GameTypeSetup.spearsHitPlayers)
+                                {
+                                    session.game.cameras[0].hud.PlaySound(SoundID.UI_Slugcat_Die);
+                                    session.Players[i].realizedCreature.Die();
+                                }
+                            }
                         }
 
                     }
-                    if (notSlugcatCount < maxCreatures)
+                    if (!session.GameTypeSetup.spearsHitPlayers) // team work makes the dream work
                     {
-                        session.SpawnCreatures();
-                    }
-                    currentWave++;
-                }
-                if (currentWave % creatureCleanupWaves == 0 && currentWave > lastCleanupWave)
-                {
-                    lastCleanupWave = currentWave;
+                        var points = 0;
 
-                    CreatureCleanup(arena, session);
+                        arena.arenaSittingOnlineOrder.ForEach(x =>
+                        {
+
+                            OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                            if (p != null)
+                            {
+                                OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                                if (cs != null)
+                                {
+
+                                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                    if (clientSettings != null)
+                                    {
+
+                                        points += clientSettings.score;
+                                    }
+                                }
+                            }
+                        });
+
+
+                        arena.arenaSittingOnlineOrder.ForEach(x =>
+                      {
+
+                          OnlinePlayer? p = ArenaHelpers.FindOnlinePlayerByLobbyId(x);
+                          if (p != null)
+                          {
+                              OnlineManager.lobby.clientSettings.TryGetValue(p, out var cs);
+                              if (cs != null)
+                              {
+
+                                  cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                  if (clientSettings != null)
+                                  {
+                                      clientSettings.teamScore = points;
+                                  }
+                              }
+                          }
+
+                      });
+                    }
+
                 }
-                waveNeedsUpdate = false;
+
+                if (!openedDen)
+                {
+                    if (currentWaveTimer % waveStart == 0 && session.playersSpawned && waveNeedsUpdate)
+                    {
+                        var creatureAlive = 0;
+                        for (int i = 0; i < session.room.abstractRoom.creatures.Count; i++)
+                        {
+                            if (session.room.abstractRoom.creatures[i].state.alive)
+                            {
+                                creatureAlive++;
+                            }
+
+                        }
+                        if (creatureAlive < maxCreatures)
+                        {
+                            session.SpawnCreatures();
+                        }
+                        currentWave++;
+                    }
+                    if (currentWave % creatureCleanupWaves == 0 && currentWave > lastCleanupWave)
+                    {
+                        lastCleanupWave = currentWave;
+
+                        CreatureCleanup(arena, session);
+                    }
+                    waveNeedsUpdate = false;
+                }
             }
+            base.ArenaSessionUpdate(arena, session);
 
         }
+
+        
 
         private void CreatureCleanup(ArenaOnlineGameMode arena, ArenaGameSession session)
         {

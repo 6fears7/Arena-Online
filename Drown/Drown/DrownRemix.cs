@@ -32,7 +32,7 @@ public class DrownOptions : OptionInterface
         PointsForSpear = config.Bind("DrownPointsForSpear", 1);
         PointsForExplSpear = config.Bind("DrownPointsForExplSpear", 10);
         PointsForBomb = config.Bind("DrownPointsForBomb", 10);
-        PointsForRespawn= config.Bind("DrownPointsForRespawn", 25);
+        PointsForRespawn = config.Bind("DrownPointsForRespawn", 25);
         PointsForDenOpen = config.Bind("DrownPointsForDenOpen", 100);
         CreatureCleanup = config.Bind("DrownCreatureCleanup", 3);
 
@@ -42,7 +42,7 @@ public class DrownOptions : OptionInterface
         StoreItem3 = config.Bind("DrownStoreItem3", KeyCode.Alpha3);
         StoreItem4 = config.Bind("DrownStoreItem4", KeyCode.Alpha4);
         StoreItem5 = config.Bind("DrownStoreItem5", KeyCode.Alpha5);
-        OpenStore  = config.Bind("DrownStoreAccess", KeyCode.Tab);
+        OpenStore = config.Bind("DrownStoreAccess", KeyCode.Tab);
     }
 
     public override void Initialize()

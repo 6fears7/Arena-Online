@@ -7,12 +7,15 @@ using System.Security.Permissions;
 using Mono.Cecil.Cil;
 using Unity.IO.LowLevel.Unsafe;
 using RainMeadow.UI;
+using IL.Watcher;
+using MonoMod.RuntimeDetour;
+using System.Reflection;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.3.2")]
+    [BepInPlugin("uo.drown", "Drown", "0.4.2")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -31,6 +34,7 @@ namespace Drown
 
         }
 
+
         private void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
         {
             orig(self);
@@ -45,12 +49,19 @@ namespace Drown
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
                 On.Creature.Violence += Creature_Violence;
                 On.Lizard.Violence += Lizard_Violence;
-                On.CompetitiveGameSession.ShouldSessionEnd += CompetitiveGameSession_ShouldSessionEnd;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
-              
-                
-
+                On.ArenaGameSession.PlayersStillActive += ArenaGameSession_PlayersStillActive;
+                new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), (Action<Lobby> orig, Lobby self) =>
+                {
+                    orig(self);
+                    OnlineManager.lobby.AddData(new DrownData());
+                });
+                new Hook(typeof(ArenaOnlineGameMode).GetMethod("AddClientData", BindingFlags.Public | BindingFlags.Instance), (Action<ArenaOnlineGameMode> orig, ArenaOnlineGameMode self) =>
+                {
+                    orig(self);
+                    self.clientSettings.AddData(new ArenaDrownClientSettings());
+                });
 
                 fullyInit = true;
             }
@@ -61,6 +72,46 @@ namespace Drown
             }
         }
 
+
+        private int ArenaGameSession_PlayersStillActive(On.ArenaGameSession.orig_PlayersStillActive orig, ArenaGameSession self, bool addToAliveTime, bool dontCountSandboxLosers)
+        {
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
+            {
+                bool teamWork = !self.GameTypeSetup.spearsHitPlayers;
+
+                var count = 0;
+                foreach (var p in arena.arenaSittingOnlineOrder)
+                {
+                    OnlinePlayer? pl = ArenaHelpers.FindOnlinePlayerByLobbyId(p);
+                    if (pl != null)
+                    {
+                        OnlineManager.lobby.clientSettings.TryGetValue(pl, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+
+                                if ((teamWork ? clientSettings.teamScore : clientSettings.score) >= drown.respCost && !drown.openedDen) // We can still respawn
+                                {
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (self.Players.FindAll(x => x.state.alive).Count == 0)
+                {
+                    return count;
+                }
+
+
+
+            }
+            return orig(self, addToAliveTime, dontCountSandboxLosers);
+        }
+
         private void Menu_ctor(On.Menu.Menu.orig_ctor orig, Menu.Menu self, ProcessManager manager, ProcessManager.ProcessID ID)
         {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena != null && self is ArenaOnlineLobbyMenu)
@@ -68,12 +119,12 @@ namespace Drown
                 if (!arena.registeredGameModes.ContainsKey(DrownMode.Drown.value))
                 {
                     arena.registeredGameModes.Add(DrownMode.Drown.value, new DrownMode());
-                    OnlineManager.lobby.AddData(new DrownData());
                 }
             }
             orig(self, manager, ID);
 
         }
+
 
         private void Player_ClassMechanicsSaint(ILContext il)
         {
@@ -91,24 +142,17 @@ namespace Drown
                 c.Emit(OpCodes.Ldloc, 18);
                 c.EmitDelegate((Player self, PhysicalObject po) =>
                 {
-                    if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var _))
+                    if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
                     {
-                        DrownMode.currentPoints++;
-                        for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                        {
-                            var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                            if (currentPlayer != null)
-                            {
-                                if (!currentPlayer.isMe)
-                                {
-                                    currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
-                                }
-                                else
-                                {
 
-                                    var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
-                                    self.room.game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
-                                }
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score++;
                             }
                         }
                     }
@@ -125,59 +169,36 @@ namespace Drown
         private void Spear_Spear_makeNeedle(On.Spear.orig_Spear_makeNeedle orig, Spear self, int type, bool active)
         {
             orig(self, type, active);
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
+            if (!self.IsLocal())
             {
-                DrownMode.currentPoints = DrownMode.currentPoints - 1;
+                return;
             }
-
-        }
-
-        private bool CompetitiveGameSession_ShouldSessionEnd(On.CompetitiveGameSession.orig_ShouldSessionEnd orig, CompetitiveGameSession self)
-        {
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-                if (self.GameTypeSetup.spearsHitPlayers) // Competitive
+                OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                if (cs != null)
                 {
-                    if (DrownMode.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
+
+                    cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                    if (clientSettings != null)
                     {
-                        return false;
+                        clientSettings.score = clientSettings.score - 1;
                     }
-
-                    var alivePlayers = self.Players.Where(player => player.state.alive);
-                    var myPlayer = self.Players.Find(player => player.state.alive && OnlinePhysicalObject.map.TryGetValue(player, out var onlineP) && onlineP.owner == OnlineManager.mePlayer);
-
-                    if (drown.openedDen && !DrownMode.iOpenedDen && myPlayer != null && myPlayer.realizedCreature != null)
-                    {
-                        self.game.cameras[0].hud.PlaySound(SoundID.MENU_Start_New_Game);
-                        myPlayer.realizedCreature.Die();
-                    }
-                    return alivePlayers.Any(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive); // Dens are opened and we have no money. Did anyone beat us there or is everyone dead?
-
-                }
-
-                if (!self.GameTypeSetup.spearsHitPlayers) // Cooperative
-                {
-                    if (DrownMode.currentPoints >= drown.respCost && !drown.openedDen) // We can still respawn
-                    {
-                        return false;
-                    }
-                    var alivePlayers = self.Players.Where(player => player.state.alive);
-                    return alivePlayers.All(player => self.exitManager.playersInDens.Any(denPlayer => denPlayer.creature.abstractCreature == player)) || !self.Players.Any(player => player.state.alive);
                 }
             }
-            return orig(self);
+
         }
 
         private void Lizard_Violence(On.Lizard.orig_Violence orig, Lizard self, BodyChunk source, UnityEngine.Vector2? directionAndMomentum, BodyChunk hitChunk, PhysicalObject.Appendage.Pos onAppendagePos, Creature.DamageType type, float damage, float stunBonus)
         {
             orig(self, source, directionAndMomentum, hitChunk, onAppendagePos, type, damage, stunBonus);
-            if (self.State.dead)
-            {
-                return;
-            }
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
-            {
 
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
+            {
+                if (self.State.dead)
+                {
+                    return;
+                }
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
                 {
@@ -187,25 +208,19 @@ namespace Drown
                 {
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
-                        DrownMode.currentPoints++;
-                    }
-                }
-                for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                {
-                    var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                    if (currentPlayer != null)
-                    {
-                        if (!currentPlayer.isMe)
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
                         {
-                            currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
-                        }
-                        else
-                        {
-                            var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
-                            game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score++;
+                            }
                         }
                     }
                 }
+
 
             }
         }
@@ -214,12 +229,12 @@ namespace Drown
         {
             orig(self, source, directionAndMomentum, hitChunk, hitAppendage, type, damage, stunBonus);
 
-            if (self.State.dead)
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
             {
-                return;
-            }
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && arena.externalArenaGameMode == arena.registeredGameModes.FirstOrDefault(kvp => kvp.Key == DrownMode.Drown.value).Value)
-            {
+                if (self.State.dead)
+                {
+                    return;
+                }
                 var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
                 if (game.manager.upcomingProcess != null)
                 {
@@ -229,30 +244,22 @@ namespace Drown
                 {
                     if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
                     {
-                        DrownMode.currentPoints++;
-                    }
-                }
-                for (int i = 0; i < arena.arenaSittingOnlineOrder.Count; i++)
-                {
-                    var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, i);
-                    if (currentPlayer != null)
-                    {
-                        if (!currentPlayer.isMe)
-                        {
-                            currentPlayer.InvokeOnceRPC(DrownModeRPCs.Arena_IncrementPlayerScore, DrownMode.currentPoints, OnlineManager.mePlayer.inLobbyId);
-                        }
-                        else
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
                         {
 
-                            var playerWhoScored = ArenaHelpers.FindOnlinePlayerNumber(arena, currentPlayer);
-                            game.GetArenaGameSession.arenaSitting.players[playerWhoScored].score = DrownMode.currentPoints;
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                clientSettings.score++;
+                            }
                         }
                     }
                 }
 
             }
 
-
+           
         }
 
         private void TextPrompt_AddMessage_string_int_int_bool_bool(On.HUD.TextPrompt.orig_AddMessage_string_int_int_bool_bool orig, HUD.TextPrompt self, string text, int wait, int time, bool darken, bool hideHud)
@@ -268,6 +275,8 @@ namespace Drown
             }
 
         }
+
+
 
     }
 }
