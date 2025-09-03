@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.4.2")]
+    [BepInPlugin("uo.drown", "Drown", "0.4.3")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
@@ -101,6 +101,7 @@ namespace Drown
                         }
                     }
                 }
+
                 if (self.Players.FindAll(x => x.state.alive).Count == 0)
                 {
                     return count;
@@ -122,7 +123,6 @@ namespace Drown
                 }
             }
             orig(self, manager, ID);
-
         }
 
 
@@ -259,7 +259,7 @@ namespace Drown
 
             }
 
-           
+
         }
 
         private void TextPrompt_AddMessage_string_int_int_bool_bool(On.HUD.TextPrompt.orig_AddMessage_string_int_int_bool_bool orig, HUD.TextPrompt self, string text, int wait, int time, bool darken, bool hideHud)

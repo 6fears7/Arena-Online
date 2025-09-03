@@ -47,7 +47,10 @@ namespace Drown
         public int spearCost = DrownMod.drownOptions.PointsForSpear.Value;
         public int spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
         public int bombCost = DrownMod.drownOptions.PointsForBomb.Value;
+        public int electricSpearCost = DrownMod.drownOptions.PointsForElectricSpear.Value;
+        public int boomerangeCost = DrownMod.drownOptions.PointsForBoomerang.Value;
         public int respCost = DrownMod.drownOptions.PointsForRespawn.Value;
+
         public int denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
         public int maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
         public int creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;

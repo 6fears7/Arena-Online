@@ -31,6 +31,9 @@ namespace RainMeadow.UI.Components
         public OpTextBox? pointsForSpearTextBox;
         public OpTextBox? pointsForExplSpearTextBox;
         public OpTextBox? pointsForBombTextBox;
+        public OpTextBox? pointsForElecSpear;
+        public OpTextBox? pointsForBoomerangText;
+
         public OpTextBox? pointsForRespawnTextBox;
         public OpTextBox? pointsForDenOpenTextBox;
         public OpTextBox? creatureCleanupsTextBox;
@@ -99,7 +102,39 @@ namespace RainMeadow.UI.Components
             };
             UIelementWrapper pointsForBombTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForBombTextBox);
 
-            var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a respawn", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
+            var pointsForElectricSpear = new ProperlyAlignedMenuLabel(menu, owner, "[MSC]: Points required to buy an electric spear", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
+            pointsForElecSpear = new(new Configurable<int>(drown.electricSpearCost), new Vector2(10, pointsForElectricSpear.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = !ModManager.MSC || OwnerSettingsDisabled
+            };
+            pointsForElecSpear.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.electricSpearCost = pointsForElecSpear.valueInt;
+                DrownMod.drownOptions.PointsForElectricSpear.Value = pointsForElecSpear.valueInt;
+
+            };
+
+            UIelementWrapper pointsForElectricWrapper = new UIelementWrapper(tabWrapper, pointsForElecSpear);
+
+
+            var pointsForBoomerang = new ProperlyAlignedMenuLabel(menu, owner, "[Watcher]: Points required to buy a boomerang", new Vector2(10f, pointsForElecSpear.pos.y - 15), new Vector2(0, 20), false);
+            pointsForBoomerangText = new(new Configurable<int>(drown.boomerangeCost), new Vector2(10, pointsForBoomerang.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = !ModManager.Watcher || OwnerSettingsDisabled
+            };
+            pointsForBoomerangText.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.boomerangeCost = pointsForBoomerangText.valueInt;
+                DrownMod.drownOptions.PointsForBoomerang.Value = pointsForBoomerangText.valueInt;
+
+            };
+
+            UIelementWrapper pointsForBoomerangWrapper = new UIelementWrapper(tabWrapper, pointsForBoomerangText);
+
+
+            var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a respawn", new Vector2(10f, pointsForBoomerangText.pos.y - 15), new Vector2(0, 20), false);
             pointsForRespawnTextBox = new(new Configurable<int>(drown.respCost), new Vector2(10, pointsForRespawnLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
@@ -143,7 +178,7 @@ namespace RainMeadow.UI.Components
 
 
             this.SafeAddSubobjects(tabWrapper, maxCLLabel, maxCTextBoxWrapper,
-                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper,
+                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper, pointsForBoomerang, pointsForBoomerangWrapper, pointsForElectricSpear, pointsForElectricWrapper,
                 pointsForBombLabel, pointsForBombTextBoxWrapper, pointsForRespawnLabel, pointsForRespawnTextBoxWrapper,
                 pointsForDenOpenLabel, pointsForDenOpenTextBoxWrapper, creatureCleanupsLabel, creatureCleanupsTextBoxWrapper);
         }
@@ -213,6 +248,15 @@ namespace RainMeadow.UI.Components
             if (pointsForBombTextBox != null)
             {
                 pointsForBombTextBox.valueInt = DROWN.bombCost;
+            }
+            if (pointsForElecSpear != null)
+            {
+                pointsForElecSpear.valueInt = DROWN.electricSpearCost;
+            }
+
+            if (pointsForBoomerangText != null)
+            {
+                pointsForBoomerangText.valueInt = DROWN.boomerangeCost;
             }
             if (pointsForRespawnTextBox != null)
             {
