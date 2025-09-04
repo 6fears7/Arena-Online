@@ -52,6 +52,8 @@ namespace Drown
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
                 On.ArenaGameSession.PlayersStillActive += ArenaGameSession_PlayersStillActive;
+                On.Player.checkInput += Player_checkInput;
+                On.ArenaGameSession.Killing += ArenaGameSession_Killing;
                 new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), (Action<Lobby> orig, Lobby self) =>
                 {
                     orig(self);
@@ -72,6 +74,55 @@ namespace Drown
             }
         }
 
+        private void ArenaGameSession_Killing(On.ArenaGameSession.orig_Killing orig, ArenaGameSession self, Player player, Creature killedCrit)
+        {
+            orig(self, player, killedCrit);
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out _))
+            {
+
+                foreach (var abs in self.Players)
+                {
+                    if (abs == killedCrit.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
+                    {
+                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                        if (cs != null)
+                        {
+
+                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                            if (clientSettings != null)
+                            {
+                                int arenaPlayer = ArenaHelpers.FindOnlinePlayerNumber(arena, OnlineManager.mePlayer);
+                                IconSymbol.IconSymbolData iconSymbolData = CreatureSymbol.SymbolDataFromCreature(killedCrit.abstractCreature);
+                                int index = MultiplayerUnlocks.SandboxUnlockForSymbolData(iconSymbolData).Index;
+                                if (index >= 0)
+                                {
+                                    self.arenaSitting.players[arenaPlayer].AddSandboxScore(self.arenaSitting.gameTypeSetup.killScores[index]);
+                                }
+                                else
+                                {
+                                    self.arenaSitting.players[arenaPlayer].AddSandboxScore(0);
+                                }
+                                clientSettings.score += self.arenaSitting.gameTypeSetup.killScores[index];
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        private void Player_checkInput(On.Player.orig_checkInput orig, Player self)
+        {
+            orig(self);
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var _) && self.IsLocal())
+            {
+                if (self.controller is null && self.room.world.game.cameras[0]?.hud is HUD.HUD hud
+                    && (hud.parts.OfType<StoreHUD>().Any(x => x.active == true)))
+                {
+                    InputOverride.StopPlayerMovement(self);
+                }
+            }
+        }
 
         private int ArenaGameSession_PlayersStillActive(On.ArenaGameSession.orig_PlayersStillActive orig, ArenaGameSession self, bool addToAliveTime, bool dontCountSandboxLosers)
         {
@@ -102,12 +153,18 @@ namespace Drown
                     }
                 }
 
-                if (self.Players.FindAll(x => x.state.alive).Count == 0)
+                if (teamWork && (self.Players.FindAll(x => x.realizedCreature != null && x.realizedCreature.State.alive).Count > 0))
                 {
-                    return count;
+                    return orig(self, addToAliveTime, dontCountSandboxLosers);
                 }
 
-
+                if (self.Players.FindAll(x => x.realizedCreature != null && x.realizedCreature.State.alive).Count == 0)
+                {
+                    if (count > 0)
+                    {
+                        return count;
+                    }
+                }
 
             }
             return orig(self, addToAliveTime, dontCountSandboxLosers);
@@ -204,22 +261,22 @@ namespace Drown
                 {
                     return;
                 }
-                foreach (var abs in game.GetArenaGameSession.Players)
-                {
-                    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
-                    {
-                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                        if (cs != null)
-                        {
+                //foreach (var abs in game.GetArenaGameSession.Players)
+                //{
+                //    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
+                //    {
+                //        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                //        if (cs != null)
+                //        {
 
-                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                            if (clientSettings != null)
-                            {
-                                clientSettings.score++;
-                            }
-                        }
-                    }
-                }
+                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                //            if (clientSettings != null)
+                //            {
+                //                clientSettings.score++;
+                //            }
+                //        }
+                //    }
+                //}
 
 
             }
@@ -240,22 +297,22 @@ namespace Drown
                 {
                     return;
                 }
-                foreach (var abs in game.GetArenaGameSession.Players)
-                {
-                    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
-                    {
-                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                        if (cs != null)
-                        {
+                //foreach (var abs in game.GetArenaGameSession.Players)
+                //{
+                //    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
+                //    {
+                //        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                //        if (cs != null)
+                //        {
 
-                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                            if (clientSettings != null)
-                            {
-                                clientSettings.score++;
-                            }
-                        }
-                    }
-                }
+                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                //            if (clientSettings != null)
+                //            {
+                //                clientSettings.score++;
+                //            }
+                //        }
+                //    }
+                //}
 
             }
 

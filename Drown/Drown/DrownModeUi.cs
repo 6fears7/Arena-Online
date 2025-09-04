@@ -33,6 +33,7 @@ namespace RainMeadow.UI.Components
         public OpTextBox? pointsForBombTextBox;
         public OpTextBox? pointsForElecSpear;
         public OpTextBox? pointsForBoomerangText;
+        public OpTextBox? pointsForRockTextBox;
 
         public OpTextBox? pointsForRespawnTextBox;
         public OpTextBox? pointsForDenOpenTextBox;
@@ -45,21 +46,22 @@ namespace RainMeadow.UI.Components
         {
             tabWrapper = new(menu, this);
             DROWN = drown;
-            var maxCLLabel = new ProperlyAlignedMenuLabel(menu, owner, "Max creatures in level", new Vector2(10f, 400), new Vector2(0, 20), false);
-            maxCTextBox = new(new Configurable<int>(drown.maxCreatures), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+
+            var pointsForRockLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a ... rock?", new Vector2(10f, 400), new Vector2(0, 20), false);
+            pointsForRockTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForRock.Value), new Vector2(10, pointsForRockLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
                 greyedOut = OwnerSettingsDisabled
-
             };
-            maxCTextBox.OnValueUpdate += (config, value, oldValue) =>
+            pointsForRockTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
-                DROWN.maxCreatures = maxCTextBox.valueInt;
-                DrownMod.drownOptions.MaxCreatureCount.Value = maxCTextBox.valueInt;
-            };
-            UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
+                DROWN.rockCost = pointsForRockTextBox.valueInt;
+                DrownMod.drownOptions.PointsForRock.Value = pointsForRockTextBox.valueInt;
 
-            var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a spear", new Vector2(10f, maxCTextBox.pos.y - 15), new Vector2(0, 20), false);
+            };
+            UIelementWrapper pointsForRockWrapper = new UIelementWrapper(tabWrapper, pointsForRockTextBox);
+
+            var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a spear", new Vector2(10f, pointsForRockTextBox.pos.y - 15), new Vector2(0, 20), false);
             pointsForSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForSpear.Value), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
@@ -177,8 +179,22 @@ namespace RainMeadow.UI.Components
             UIelementWrapper creatureCleanupsTextBoxWrapper = new UIelementWrapper(tabWrapper, creatureCleanupsTextBox);
 
 
+            var maxCLLabel = new ProperlyAlignedMenuLabel(menu, owner, "Max creatures in level", new Vector2(10f, creatureCleanupsTextBox.pos.y - 15), new Vector2(0, 20), false);
+            maxCTextBox = new(new Configurable<int>(drown.maxCreatures), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = OwnerSettingsDisabled
+
+            };
+            maxCTextBox.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.maxCreatures = maxCTextBox.valueInt;
+                DrownMod.drownOptions.MaxCreatureCount.Value = maxCTextBox.valueInt;
+            };
+            UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
+
             this.SafeAddSubobjects(tabWrapper, maxCLLabel, maxCTextBoxWrapper,
-                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper, pointsForBoomerang, pointsForBoomerangWrapper, pointsForElectricSpear, pointsForElectricWrapper,
+                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper, pointsForBoomerang, pointsForBoomerangWrapper, pointsForElectricSpear, pointsForElectricWrapper, pointsForRockWrapper, pointsForRockLabel,
                 pointsForBombLabel, pointsForBombTextBoxWrapper, pointsForRespawnLabel, pointsForRespawnTextBoxWrapper,
                 pointsForDenOpenLabel, pointsForDenOpenTextBoxWrapper, creatureCleanupsLabel, creatureCleanupsTextBoxWrapper);
         }
