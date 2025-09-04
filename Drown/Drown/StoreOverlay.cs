@@ -16,6 +16,16 @@ namespace Drown
 
         public class ItemButton
         {
+
+            public const string Rock = "Rock";
+            public const string Spear = "Spear";
+            public const string ExplosiveSpear = "Explosive Spear";
+            public const string ScavengerBomb = "Scavenger Bomb";
+            public const string ElectricSpear = "Electric Spear";
+            public const string Boomerang = "Boomerang";
+            public const string Respawn = "Respawn";
+            public const string OpenDens = "Open Dens";
+
             public OnlinePhysicalObject player;
             public SimplerButton button;
             public bool mutedPlayer;
@@ -51,28 +61,25 @@ namespace Drown
                             }
                         }
 
-                        switch (index)
+                        switch (itemEntry.Key)
                         {
-                            case 0:
+                            case Spear:
                                 desiredObject = new AbstractSpear(game.world, null, me.pos, game.GetNewID(), false);
                                 break;
-                            case 1:
+                            case ExplosiveSpear:
                                 desiredObject = new AbstractSpear(game.world, null, me.pos, game.GetNewID(), true);
                                 break;
-                            case 2:
+                            case ScavengerBomb:
                                 desiredObject = new AbstractPhysicalObject(game.world, AbstractPhysicalObject.AbstractObjectType.ScavengerBomb, null, me.pos, game.GetNewID());
                                 break;
-                            case 3:
-                                AbstractSpear spear = new AbstractSpear(game.world, null, me.pos, game.GetNewID(), true);
-                                spear.electric = true;
-                                ElectricSpear eSpear = new ElectricSpear(spear, game.world);
-                                desiredObject = eSpear.abstractPhysicalObject;
+                            case ElectricSpear:
+                                desiredObject = new AbstractSpear(game.world, null, me.pos, game.GetNewID(), false, true);
                                 break;
-                            case 4:
+                            case Boomerang:
                                 desiredObject = new AbstractPhysicalObject(game.world, Watcher.WatcherEnums.AbstractObjectType.Boomerang, null, me.pos, game.GetNewID());
                                 break;
 
-                            case 5:
+                            case Respawn:
 
                                 didRespawn = false;
                                 if (!didRespawn)
@@ -82,7 +89,7 @@ namespace Drown
                                 }
 
                                 break;
-                            case 6:
+                            case OpenDens:
                                 if (DrownMode.isDrownMode(arena, out var drown))
                                 {
 
@@ -108,6 +115,9 @@ namespace Drown
                                     }
                                 }
                                 game.cameras[0].hud.PlaySound(SoundID.UI_Multiplayer_Player_Revive);
+                                break;
+                            case Rock:
+                                desiredObject = new AbstractPhysicalObject(game.world, AbstractPhysicalObject.AbstractObjectType.Rock, null, me.pos, game.GetNewID());
                                 break;
                         }
 
@@ -157,11 +167,11 @@ namespace Drown
             this.pages[0].subObjects.Add(new Menu.MenuLabel(this, this.pages[0], this.Translate("STORE"), new Vector2(pos.x, pos.y + 30f), new Vector2(110, 30), true));
             var storeItems = new Dictionary<string, int> {
             { "Spear", drown.spearCost },
+            { "Rock", drown.rockCost},
             { "Explosive Spear", drown.spearExplCost },
             { "Scavenger Bomb", drown.bombCost },
             { "Electric Spear", drown.electricSpearCost },
             { "Boomerang", drown.boomerangeCost },
-
             { "Respawn", drown.respCost},
             { "Open Dens", drown.denCost},
 
@@ -257,35 +267,42 @@ namespace Drown
                                 }
                                 if (foundMe != null)
                                 {
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem1.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[0].cost && !drown.openedDen)
+                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem1.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[0].cost)
                                     {
                                         storeItemList[0].button.Clicked();
                                     }
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem2.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[1].cost && !drown.openedDen)
+                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem2.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[1].cost)
                                     {
                                         storeItemList[1].button.Clicked();
                                     }
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem3.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost && !drown.openedDen)
+                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem3.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost)
                                     {
                                         storeItemList[2].button.Clicked();
                                     }
-                                    if (ModManager.MSC && Input.GetKeyDown(DrownMod.drownOptions.StoreItem4.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost && !drown.openedDen)
+                                    if (ModManager.MSC && Input.GetKeyDown(DrownMod.drownOptions.StoreItem4.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[3].cost)
                                     {
                                         storeItemList[3].button.Clicked();
                                     }
-                                    if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem5.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost && !drown.openedDen)
+                                    if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem5.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[4].cost)
                                     {
                                         storeItemList[4].button.Clicked();
                                     }
+
+                                    if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem6.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[5].cost)
+                                    {
+                                        storeItemList[5].button.Clicked();
+                                    }
+
                                 }
-                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem6.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[5].cost && !drown.openedDen && (foundMe == null || foundMe.state.dead))
-                                {
-                                    storeItemList[5].button.Clicked();
-                                }
-                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem7.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[6].cost && !drown.openedDen)
+                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem7.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[6].cost && !drown.openedDen && (foundMe == null || foundMe.state.dead))
                                 {
                                     storeItemList[6].button.Clicked();
                                 }
+                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem8.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[7].cost && !drown.openedDen)
+                                {
+                                    storeItemList[7].button.Clicked();
+                                }
+
                             }
                         }
                     }
@@ -303,9 +320,9 @@ namespace Drown
             {
                 exitList.Add(i);
             }
-            game.Players.Clear();
             arena.avatars.Clear();
             arena.externalArenaGameMode.SpawnPlayer(arena, game, game.room, exitList);
+            game.Players.Clear();
 
 
         }
