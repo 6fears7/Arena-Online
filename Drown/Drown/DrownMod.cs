@@ -16,7 +16,7 @@ using System.Security.Cryptography;
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 namespace Drown
 {
-    [BepInPlugin("uo.drown", "Drown", "0.4.3")]
+    [BepInPlugin("uo.drown", "Drown", "0.5.0")]
     public partial class DrownMod : BaseUnityPlugin
     {
         public static DrownOptions drownOptions;
