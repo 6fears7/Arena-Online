@@ -15,6 +15,16 @@ namespace Drown
     public partial class DrownMode : ExternalArenaGameMode
     {
 
+        public static string Rock = "Rock";
+        public static string Spear = "Spear";
+        public static string ExplosiveSpear = "Explosive Spear";
+        public static string ScavengerBomb = "Scavenger Bomb";
+        public static string ElectricSpear = "Electric Spear";
+        public static string Boomerang = "Boomerang";
+        public static string Respawn = "Respawn";
+        public static string OpenDens = "Open Dens";
+
+
         public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: true);
         public override ArenaSetup.GameTypeID GetGameModeId
         {
@@ -47,7 +57,11 @@ namespace Drown
         public int spearCost = DrownMod.drownOptions.PointsForSpear.Value;
         public int spearExplCost = DrownMod.drownOptions.PointsForExplSpear.Value;
         public int bombCost = DrownMod.drownOptions.PointsForBomb.Value;
+        public int electricSpearCost = DrownMod.drownOptions.PointsForElectricSpear.Value;
+        public int boomerangeCost = DrownMod.drownOptions.PointsForBoomerang.Value;
         public int respCost = DrownMod.drownOptions.PointsForRespawn.Value;
+        public int rockCost = DrownMod.drownOptions.PointsForRock.Value;
+
         public int denCost = DrownMod.drownOptions.PointsForDenOpen.Value;
         public int maxCreatures = DrownMod.drownOptions.MaxCreatureCount.Value;
         public int creatureCleanupWaves = DrownMod.drownOptions.CreatureCleanup.Value;
@@ -113,6 +127,7 @@ namespace Drown
             self.saveCreatures = false;
             self.spearsHitPlayers = ArenaHelpers.GetOptionFromArena("SPEARSHIT", self.spearsHitPlayers);
             spearHits = self.spearsHitPlayers;
+            SandboxSettingsInterface.DefaultKillScores(ref self.killScores);
 
         }
 

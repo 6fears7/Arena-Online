@@ -9,6 +9,7 @@ namespace Drown
         private RainWorldGame game;
         private DrownMode drown;
         private StoreOverlay? storeOverlay;
+        public bool active;
 
         public StoreHUD(HUD.HUD hud, RoomCamera camera, DrownMode drown) : base(hud)
         {
@@ -20,7 +21,6 @@ namespace Drown
         public override void Draw(float timeStacker)
         {
             base.Draw(timeStacker);
-
             if (RainMeadow.RainMeadow.isArenaMode(out var arena))
             {
                 if (Input.GetKeyDown(DrownMod.drownOptions.OpenStore.Value))
@@ -29,6 +29,7 @@ namespace Drown
                     {
                         RainMeadow.RainMeadow.Debug("Creating storeOverlay overlay");
                         storeOverlay = new StoreOverlay(game.manager, game, drown, arena);
+                        this.active = true;
                         this.drown.isInStore = true;
                         OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                         if (cs != null)
@@ -47,6 +48,7 @@ namespace Drown
                     {
                         RainMeadow.RainMeadow.Debug("storeOverlay destroy!");
                         this.drown.isInStore = false;
+                        this.active = false;
                         OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
                         if (cs != null)
                         {
@@ -55,6 +57,7 @@ namespace Drown
                             if (clientSettings != null)
                             {
                                 clientSettings.isInStore = false;
+
                             }
                         }
                         storeOverlay.ShutDownProcess();

@@ -31,6 +31,10 @@ namespace RainMeadow.UI.Components
         public OpTextBox? pointsForSpearTextBox;
         public OpTextBox? pointsForExplSpearTextBox;
         public OpTextBox? pointsForBombTextBox;
+        public OpTextBox? pointsForElecSpear;
+        public OpTextBox? pointsForBoomerangText;
+        public OpTextBox? pointsForRockTextBox;
+
         public OpTextBox? pointsForRespawnTextBox;
         public OpTextBox? pointsForDenOpenTextBox;
         public OpTextBox? creatureCleanupsTextBox;
@@ -42,21 +46,22 @@ namespace RainMeadow.UI.Components
         {
             tabWrapper = new(menu, this);
             DROWN = drown;
-            var maxCLLabel = new ProperlyAlignedMenuLabel(menu, owner, "Max creatures in level", new Vector2(10f, 400), new Vector2(0, 20), false);
-            maxCTextBox = new(new Configurable<int>(drown.maxCreatures), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+
+            var pointsForRockLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a ... rock?", new Vector2(10f, 400), new Vector2(0, 20), false);
+            pointsForRockTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForRock.Value), new Vector2(10, pointsForRockLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
                 greyedOut = OwnerSettingsDisabled
-
             };
-            maxCTextBox.OnValueUpdate += (config, value, oldValue) =>
+            pointsForRockTextBox.OnValueUpdate += (config, value, oldValue) =>
             {
-                DROWN.maxCreatures = maxCTextBox.valueInt;
-                DrownMod.drownOptions.MaxCreatureCount.Value = maxCTextBox.valueInt;
-            };
-            UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
+                DROWN.rockCost = pointsForRockTextBox.valueInt;
+                DrownMod.drownOptions.PointsForRock.Value = pointsForRockTextBox.valueInt;
 
-            var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a spear", new Vector2(10f, maxCTextBox.pos.y - 15), new Vector2(0, 20), false);
+            };
+            UIelementWrapper pointsForRockWrapper = new UIelementWrapper(tabWrapper, pointsForRockTextBox);
+
+            var pointsForSpearLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a spear", new Vector2(10f, pointsForRockTextBox.pos.y - 15), new Vector2(0, 20), false);
             pointsForSpearTextBox = new(new Configurable<int>(DrownMod.drownOptions.PointsForSpear.Value), new Vector2(10, pointsForSpearLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
@@ -99,7 +104,39 @@ namespace RainMeadow.UI.Components
             };
             UIelementWrapper pointsForBombTextBoxWrapper = new UIelementWrapper(tabWrapper, pointsForBombTextBox);
 
-            var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a respawn", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
+            var pointsForElectricSpear = new ProperlyAlignedMenuLabel(menu, owner, "[MSC]: Points required to buy an electric spear", new Vector2(10f, pointsForBombTextBox.pos.y - 15), new Vector2(0, 20), false);
+            pointsForElecSpear = new(new Configurable<int>(drown.electricSpearCost), new Vector2(10, pointsForElectricSpear.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = !ModManager.MSC || OwnerSettingsDisabled
+            };
+            pointsForElecSpear.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.electricSpearCost = pointsForElecSpear.valueInt;
+                DrownMod.drownOptions.PointsForElectricSpear.Value = pointsForElecSpear.valueInt;
+
+            };
+
+            UIelementWrapper pointsForElectricWrapper = new UIelementWrapper(tabWrapper, pointsForElecSpear);
+
+
+            var pointsForBoomerang = new ProperlyAlignedMenuLabel(menu, owner, "[Watcher]: Points required to buy a boomerang", new Vector2(10f, pointsForElecSpear.pos.y - 15), new Vector2(0, 20), false);
+            pointsForBoomerangText = new(new Configurable<int>(drown.boomerangeCost), new Vector2(10, pointsForBoomerang.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = !ModManager.Watcher || OwnerSettingsDisabled
+            };
+            pointsForBoomerangText.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.boomerangeCost = pointsForBoomerangText.valueInt;
+                DrownMod.drownOptions.PointsForBoomerang.Value = pointsForBoomerangText.valueInt;
+
+            };
+
+            UIelementWrapper pointsForBoomerangWrapper = new UIelementWrapper(tabWrapper, pointsForBoomerangText);
+
+
+            var pointsForRespawnLabel = new ProperlyAlignedMenuLabel(menu, owner, "Points required to buy a respawn", new Vector2(10f, pointsForBoomerangText.pos.y - 15), new Vector2(0, 20), false);
             pointsForRespawnTextBox = new(new Configurable<int>(drown.respCost), new Vector2(10, pointsForRespawnLabel.pos.y - 25), 160f)
             {
                 accept = OpTextBox.Accept.Int,
@@ -142,8 +179,22 @@ namespace RainMeadow.UI.Components
             UIelementWrapper creatureCleanupsTextBoxWrapper = new UIelementWrapper(tabWrapper, creatureCleanupsTextBox);
 
 
+            var maxCLLabel = new ProperlyAlignedMenuLabel(menu, owner, "Max creatures in level", new Vector2(10f, creatureCleanupsTextBox.pos.y - 15), new Vector2(0, 20), false);
+            maxCTextBox = new(new Configurable<int>(drown.maxCreatures), new Vector2(10, maxCLLabel.pos.y - 25), 160f)
+            {
+                accept = OpTextBox.Accept.Int,
+                greyedOut = OwnerSettingsDisabled
+
+            };
+            maxCTextBox.OnValueUpdate += (config, value, oldValue) =>
+            {
+                DROWN.maxCreatures = maxCTextBox.valueInt;
+                DrownMod.drownOptions.MaxCreatureCount.Value = maxCTextBox.valueInt;
+            };
+            UIelementWrapper maxCTextBoxWrapper = new UIelementWrapper(tabWrapper, maxCTextBox);
+
             this.SafeAddSubobjects(tabWrapper, maxCLLabel, maxCTextBoxWrapper,
-                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper,
+                pointsForSpearLabel, pointsForSpearTextBoxWrapper, pointsForExplSpearLabel, pointsForExplSpearTextBoxWrapper, pointsForBoomerang, pointsForBoomerangWrapper, pointsForElectricSpear, pointsForElectricWrapper, pointsForRockWrapper, pointsForRockLabel,
                 pointsForBombLabel, pointsForBombTextBoxWrapper, pointsForRespawnLabel, pointsForRespawnTextBoxWrapper,
                 pointsForDenOpenLabel, pointsForDenOpenTextBoxWrapper, creatureCleanupsLabel, creatureCleanupsTextBoxWrapper);
         }
@@ -213,6 +264,15 @@ namespace RainMeadow.UI.Components
             if (pointsForBombTextBox != null)
             {
                 pointsForBombTextBox.valueInt = DROWN.bombCost;
+            }
+            if (pointsForElecSpear != null)
+            {
+                pointsForElecSpear.valueInt = DROWN.electricSpearCost;
+            }
+
+            if (pointsForBoomerangText != null)
+            {
+                pointsForBoomerangText.valueInt = DROWN.boomerangeCost;
             }
             if (pointsForRespawnTextBox != null)
             {
