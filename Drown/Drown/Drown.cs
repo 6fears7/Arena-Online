@@ -25,7 +25,7 @@ namespace Drown
         public static string OpenDens = "Open Dens";
 
 
-        public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: true);
+        public static ArenaSetup.GameTypeID Drown = new ArenaSetup.GameTypeID("Drown", register: false);
         public override ArenaSetup.GameTypeID GetGameModeId
         {
             get
@@ -44,6 +44,10 @@ namespace Drown
         public static bool isDrownMode(ArenaOnlineGameMode arena, out DrownMode mode)
         {
             mode = null;
+            if (OnlineManager.lobby.gameMode is not ArenaOnlineGameMode)
+            {
+                return false;
+            }
             if (arena.currentGameMode == Drown.value)
             {
                 mode = (arena.registeredGameModes.FirstOrDefault(x => x.Key == Drown.value).Value as DrownMode);
@@ -424,7 +428,7 @@ namespace Drown
 
         }
 
-        
+
 
         private void CreatureCleanup(ArenaOnlineGameMode arena, ArenaGameSession session)
         {
