@@ -106,7 +106,7 @@ namespace Drown
                                     drown.openedDen = true;
                                     for (int j = 0; j < arena.arenaSittingOnlineOrder.Count; j++)
                                     {
-                                        var currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, j);
+                                        OnlinePlayer? currentPlayer = ArenaHelpers.FindOnlinePlayerByFakePlayerNumber(arena, j);
                                         if (currentPlayer != null && !OnlineManager.lobby.isOwner)
                                         {
                                             OnlineManager.lobby.owner.InvokeOnceRPC(DrownModeRPCs.Arena_OpenDen, drown.openedDen);
@@ -199,111 +199,104 @@ namespace Drown
         {
             base.Update();
             bool teamWork = !game.GetArenaGameSession.GameTypeSetup.spearsHitPlayers;
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena))
+            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && (DrownMode.isDrownMode(arena, out var drown)))
             {
-                if (DrownMode.isDrownMode(arena, out var drown))
+                for (int p = 0; p < game.Players.Count; p++)
                 {
-                    for (int p = 0; p < game.Players.Count; p++)
+                    if (OnlinePhysicalObject.map.TryGetValue(game.Players[p], out var onlineC))
                     {
-                        if (OnlinePhysicalObject.map.TryGetValue(game.Players[p], out var onlineC))
-                        {
 
-                            if (onlineC.owner == OnlineManager.mePlayer)
-                            {
-                                foundMe = game.Players[p];
-                            }
-
-                        }
-                        else
+                        if (onlineC.owner == OnlineManager.mePlayer)
                         {
-                            foundMe = null;
+                            foundMe = game.Players[p];
                         }
+
                     }
-                    if (storeItemList != null)
+                }
+                if (storeItemList != null)
+                {
+                    OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                    if (cs != null)
                     {
-                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                        if (cs != null)
+
+                        cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                        if (clientSettings != null)
                         {
 
-                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                            if (clientSettings != null)
+                            for (int i = 0; i < storeItemList.Count; i++)
                             {
+                                storeItemList[i].button.buttonBehav.greyedOut = true;
 
-                                for (int i = 0; i < storeItemList.Count; i++)
+                                if (storeItemList[i].name == "Respawn")
                                 {
-                                    storeItemList[i].button.buttonBehav.greyedOut = true;
-
-                                    if (storeItemList[i].name == "Respawn")
+                                    if (foundMe is not null && foundMe.state.alive || drown.openedDen)
                                     {
-                                        if (foundMe is not null && foundMe.state.alive || drown.openedDen)
-                                        {
-                                            storeItemList[i].button.buttonBehav.greyedOut = true;
-                                        }
-                                        else
-                                        {
-                                            storeItemList[i].button.buttonBehav.greyedOut = (teamWork ? clientSettings.teamScore : clientSettings.score) < storeItemList[i].cost;
-                                        }
+                                        storeItemList[i].button.buttonBehav.greyedOut = true;
                                     }
-
-                                    if (storeItemList[i].name == "Open Dens" && !drown.openedDen)
+                                    else
                                     {
                                         storeItemList[i].button.buttonBehav.greyedOut = (teamWork ? clientSettings.teamScore : clientSettings.score) < storeItemList[i].cost;
                                     }
-
-                                    if (foundMe != null && !drown.openedDen && (storeItemList[i].name != "Respawn" && storeItemList[i].name != "Open Dens"))
-                                    {
-                                        if (storeItemList[i].name == "Electric Spear" && !ModManager.MSC || storeItemList[i].name == "Boomerang" && !ModManager.Watcher)
-                                        {
-                                            storeItemList[i].button.buttonBehav.greyedOut = true;
-                                        }
-                                        else
-                                        {
-
-                                            storeItemList[i].button.buttonBehav.greyedOut = (teamWork ? clientSettings.teamScore : clientSettings.score) < storeItemList[i].cost;
-                                        }
-                                    }
-
-
                                 }
-                                if (foundMe != null)
-                                {
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem1.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[0].cost)
-                                    {
-                                        storeItemList[0].button.Clicked();
-                                    }
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem2.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[1].cost)
-                                    {
-                                        storeItemList[1].button.Clicked();
-                                    }
-                                    if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem3.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost)
-                                    {
-                                        storeItemList[2].button.Clicked();
-                                    }
-                                    if (ModManager.MSC && Input.GetKeyDown(DrownMod.drownOptions.StoreItem4.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[3].cost)
-                                    {
-                                        storeItemList[3].button.Clicked();
-                                    }
-                                    if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem5.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[4].cost)
-                                    {
-                                        storeItemList[4].button.Clicked();
-                                    }
 
-                                    if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem6.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[5].cost)
-                                    {
-                                        storeItemList[5].button.Clicked();
-                                    }
+                                if (storeItemList[i].name == "Open Dens" && !drown.openedDen)
+                                {
+                                    storeItemList[i].button.buttonBehav.greyedOut = (teamWork ? clientSettings.teamScore : clientSettings.score) < storeItemList[i].cost;
+                                }
 
-                                }
-                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem7.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[6].cost && !drown.openedDen && (foundMe == null || foundMe.state.dead))
+                                if (foundMe != null && !drown.openedDen && (storeItemList[i].name != "Respawn" && storeItemList[i].name != "Open Dens"))
                                 {
-                                    storeItemList[6].button.Clicked();
+                                    if (storeItemList[i].name == "Electric Spear" && !ModManager.MSC || storeItemList[i].name == "Boomerang" && !ModManager.Watcher)
+                                    {
+                                        storeItemList[i].button.buttonBehav.greyedOut = true;
+                                    }
+                                    else
+                                    {
+
+                                        storeItemList[i].button.buttonBehav.greyedOut = (teamWork ? clientSettings.teamScore : clientSettings.score) < storeItemList[i].cost;
+                                    }
                                 }
-                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem8.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[7].cost && !drown.openedDen)
+
+
+                            }
+                            if (foundMe != null)
+                            {
+                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem1.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[0].cost)
                                 {
-                                    storeItemList[7].button.Clicked();
+                                    storeItemList[0].button.Clicked();
+                                }
+                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem2.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[1].cost)
+                                {
+                                    storeItemList[1].button.Clicked();
+                                }
+                                if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem3.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[2].cost)
+                                {
+                                    storeItemList[2].button.Clicked();
+                                }
+                                if (ModManager.MSC && Input.GetKeyDown(DrownMod.drownOptions.StoreItem4.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[3].cost)
+                                {
+                                    storeItemList[3].button.Clicked();
+                                }
+                                if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem5.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[4].cost)
+                                {
+                                    storeItemList[4].button.Clicked();
+                                }
+
+                                if (ModManager.Watcher && Input.GetKeyDown(DrownMod.drownOptions.StoreItem6.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[5].cost)
+                                {
+                                    storeItemList[5].button.Clicked();
                                 }
 
                             }
+                            if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem7.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[6].cost && !drown.openedDen && (foundMe == null || foundMe.state.dead))
+                            {
+                                storeItemList[6].button.Clicked();
+                            }
+                            if (Input.GetKeyDown(DrownMod.drownOptions.StoreItem8.Value) && (teamWork ? clientSettings.teamScore : clientSettings.score) >= storeItemList[7].cost && !drown.openedDen)
+                            {
+                                storeItemList[7].button.Clicked();
+                            }
+
                         }
                     }
                 }

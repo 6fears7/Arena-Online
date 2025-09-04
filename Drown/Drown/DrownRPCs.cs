@@ -1,26 +1,32 @@
 ﻿using RainMeadow;
+using System;
 
 namespace Drown
 {
     public static class DrownModeRPCs
     {
-        //[RPCMethod]
-        //public static void Arena_IncrementPlayerShareScore(RPCEvent rpcEvent)
-        //{
-        //    if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
-        //    {
-        //        var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
-        //        if (game.manager.upcomingProcess != null)
-        //        {
-        //            return;
-        //        }
-        //        foreach (var player in game.GetArenaGameSession.arenaSitting.players)
-        //        {
-        //            player.score = drown.teamSharedScore;
-        //        }
+        [RPCMethod]
+        public static void Drown_Killing(RPCEvent rpcEvent, OnlinePhysicalObject p, OnlinePhysicalObject c)
+        {
 
-        //    }
-        //}
+            var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
+            if (game.manager.upcomingProcess != null)
+            {
+                return;
+            }
+
+            try
+            {
+                Player player = (p.apo.realizedObject as Player);
+                Creature creature = (c.apo.realizedObject as Creature);
+
+                game.GetArenaGameSession.Killing(player, creature);
+            }
+            catch (Exception e)
+            {
+                RainMeadow.RainMeadow.Error($"Error in Drown_Killing RPC: {e}");
+            }
+        }
 
         [RPCMethod]
         public static void Arena_OpenDen(bool denOpen)

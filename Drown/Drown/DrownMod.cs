@@ -10,6 +10,7 @@ using RainMeadow.UI;
 using IL.Watcher;
 using MonoMod.RuntimeDetour;
 using System.Reflection;
+using System.Security.Cryptography;
 
 //#pragma warning disable CS0618
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -47,8 +48,6 @@ namespace Drown
 
                 On.Menu.Menu.ctor += Menu_ctor;
                 On.HUD.TextPrompt.AddMessage_string_int_int_bool_bool += TextPrompt_AddMessage_string_int_int_bool_bool;
-                On.Creature.Violence += Creature_Violence;
-                On.Lizard.Violence += Lizard_Violence;
                 On.Spear.Spear_makeNeedle += Spear_Spear_makeNeedle;
                 IL.Player.ClassMechanicsSaint += Player_ClassMechanicsSaint;
                 On.ArenaGameSession.PlayersStillActive += ArenaGameSession_PlayersStillActive;
@@ -79,35 +78,47 @@ namespace Drown
             orig(self, player, killedCrit);
             if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out _))
             {
+                OnlinePhysicalObject? onlineP = player.abstractCreature.GetOnlineObject();
+                OnlinePhysicalObject? onlineC = killedCrit.abstractCreature.GetOnlineObject();
 
-                foreach (var abs in self.Players)
+                if (onlineP == null || onlineC == null)
                 {
-                    if (abs == killedCrit.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
-                    {
-                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                        if (cs != null)
-                        {
+                    RainMeadow.RainMeadow.Error($"Error in ArenaGameSession_Killing: onlineP :{onlineP} or onlineC : {onlineC}is null");
+                    return;
+                }
 
-                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                            if (clientSettings != null)
+                if (killedCrit.IsLocal())
+                {
+                    onlineC.BroadcastRPCInRoom(DrownModeRPCs.Drown_Killing, onlineP, onlineC);
+                }
+
+                if (player.abstractCreature == killedCrit.killTag && onlineP.owner == OnlineManager.mePlayer) //  Me. I killed them.
+                {
+                    OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                    if (cs != null)
+                    {
+
+                        cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                        if (clientSettings != null)
+                        {
+                            int arenaPlayer = ArenaHelpers.FindOnlinePlayerNumber(arena, OnlineManager.mePlayer);
+                            IconSymbol.IconSymbolData iconSymbolData = CreatureSymbol.SymbolDataFromCreature(killedCrit.abstractCreature);
+                            int index = MultiplayerUnlocks.SandboxUnlockForSymbolData(iconSymbolData).Index;
+                            if (index >= 0)
                             {
-                                int arenaPlayer = ArenaHelpers.FindOnlinePlayerNumber(arena, OnlineManager.mePlayer);
-                                IconSymbol.IconSymbolData iconSymbolData = CreatureSymbol.SymbolDataFromCreature(killedCrit.abstractCreature);
-                                int index = MultiplayerUnlocks.SandboxUnlockForSymbolData(iconSymbolData).Index;
-                                if (index >= 0)
-                                {
-                                    self.arenaSitting.players[arenaPlayer].AddSandboxScore(self.arenaSitting.gameTypeSetup.killScores[index]);
-                                }
-                                else
-                                {
-                                    self.arenaSitting.players[arenaPlayer].AddSandboxScore(0);
-                                }
-                                clientSettings.score += self.arenaSitting.gameTypeSetup.killScores[index];
+                                self.arenaSitting.players[arenaPlayer].AddSandboxScore(self.arenaSitting.gameTypeSetup.killScores[index]);
                             }
+                            else
+                            {
+                                self.arenaSitting.players[arenaPlayer].AddSandboxScore(0);
+                            }
+                            clientSettings.score += self.arenaSitting.gameTypeSetup.killScores[index];
                         }
                     }
 
                 }
+
+
             }
         }
 
@@ -201,16 +212,37 @@ namespace Drown
                 {
                     if (self.IsLocal() && RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
                     {
-
-                        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                        if (cs != null)
+                        try
                         {
-
-                            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                            if (clientSettings != null)
+                            Creature creat = (po as Creature);
+                            creat.SetKillTag(self.abstractCreature);
+                            OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
+                            if (cs != null)
                             {
-                                clientSettings.score++;
+                                ArenaSitting sitting = self.room.game.GetArenaGameSession.arenaSitting;
+                                IconSymbol.IconSymbolData iconSymbolData = CreatureSymbol.SymbolDataFromCreature(creat.abstractCreature);
+                                int arenaPlayer = ArenaHelpers.FindOnlinePlayerNumber(arena, OnlineManager.mePlayer);
+
+                                int index = MultiplayerUnlocks.SandboxUnlockForSymbolData(iconSymbolData).Index;
+                                if (index >= 0)
+                                {
+                                    sitting.players[arenaPlayer].AddSandboxScore(sitting.gameTypeSetup.killScores[index]);
+                                }
+                                else
+                                {
+                                    sitting.players[arenaPlayer].AddSandboxScore(0);
+                                }
+
+                                cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
+                                if (clientSettings != null)
+                                {
+                                    clientSettings.score += sitting.gameTypeSetup.killScores[index];
+                                }
                             }
+                        }
+                        catch (Exception e)
+                        {
+                            RainMeadow.RainMeadow.Error($"Error with Saint ascending: {e}");
                         }
                     }
                 });
@@ -239,85 +271,13 @@ namespace Drown
                     cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
                     if (clientSettings != null)
                     {
-                        clientSettings.score = clientSettings.score - 1;
+                        clientSettings.score = clientSettings.score - drown.spearCost;
                     }
                 }
             }
 
         }
 
-        private void Lizard_Violence(On.Lizard.orig_Violence orig, Lizard self, BodyChunk source, UnityEngine.Vector2? directionAndMomentum, BodyChunk hitChunk, PhysicalObject.Appendage.Pos onAppendagePos, Creature.DamageType type, float damage, float stunBonus)
-        {
-            orig(self, source, directionAndMomentum, hitChunk, onAppendagePos, type, damage, stunBonus);
-
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
-            {
-                if (self.State.dead)
-                {
-                    return;
-                }
-                var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
-                if (game.manager.upcomingProcess != null)
-                {
-                    return;
-                }
-                //foreach (var abs in game.GetArenaGameSession.Players)
-                //{
-                //    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
-                //    {
-                //        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                //        if (cs != null)
-                //        {
-
-                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                //            if (clientSettings != null)
-                //            {
-                //                clientSettings.score++;
-                //            }
-                //        }
-                //    }
-                //}
-
-
-            }
-        }
-
-        private void Creature_Violence(On.Creature.orig_Violence orig, Creature self, BodyChunk source, UnityEngine.Vector2? directionAndMomentum, BodyChunk hitChunk, PhysicalObject.Appendage.Pos hitAppendage, Creature.DamageType type, float damage, float stunBonus)
-        {
-            orig(self, source, directionAndMomentum, hitChunk, hitAppendage, type, damage, stunBonus);
-
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena) && DrownMode.isDrownMode(arena, out var drown))
-            {
-                if (self.State.dead)
-                {
-                    return;
-                }
-                var game = (RWCustom.Custom.rainWorld.processManager.currentMainLoop as RainWorldGame);
-                if (game.manager.upcomingProcess != null)
-                {
-                    return;
-                }
-                //foreach (var abs in game.GetArenaGameSession.Players)
-                //{
-                //    if (abs == self.killTag && OnlinePhysicalObject.map.TryGetValue(abs, out var onlinePlayer) && onlinePlayer.owner == OnlineManager.mePlayer) //  Me. I killed them.
-                //    {
-                //        OnlineManager.lobby.clientSettings.TryGetValue(OnlineManager.mePlayer, out var cs);
-                //        if (cs != null)
-                //        {
-
-                //            cs.TryGetData<ArenaDrownClientSettings>(out var clientSettings);
-                //            if (clientSettings != null)
-                //            {
-                //                clientSettings.score++;
-                //            }
-                //        }
-                //    }
-                //}
-
-            }
-
-
-        }
 
         private void TextPrompt_AddMessage_string_int_int_bool_bool(On.HUD.TextPrompt.orig_AddMessage_string_int_int_bool_bool orig, HUD.TextPrompt self, string text, int wait, int time, bool darken, bool hideHud)
         {
