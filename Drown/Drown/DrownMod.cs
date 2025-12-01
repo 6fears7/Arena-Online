@@ -130,7 +130,7 @@ namespace Drown
                 if (self.controller is null && self.room.world.game.cameras[0]?.hud is HUD.HUD hud
                     && (hud.parts.OfType<StoreHUD>().Any(x => x.active == true)))
                 {
-                    InputOverride.StopPlayerMovement(self);
+                    GameplayOverrides.StopPlayerMovement(self);
                 }
             }
         }
