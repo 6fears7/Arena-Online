@@ -43,7 +43,16 @@ namespace MyNamespace
 
             try
             {
-                On.Menu.Menu.ctor += Menu_ctor;
+               new Hook(typeof(Lobby).GetMethod("ActivateImpl", BindingFlags.NonPublic | BindingFlags.Instance), (Action<Lobby> orig, Lobby self) =>
+                {
+                    orig(self);
+                    OnlineManager.lobby.AddData(new myNewGamemode());
+                });
+                new Hook(typeof(ArenaOnlineGameMode).GetMethod("AddClientData", BindingFlags.Public | BindingFlags.Instance), (Action<ArenaOnlineGameMode> orig, ArenaOnlineGameMode self) =>
+                {
+                    orig(self);
+                    self.clientSettings.AddData(new myNewGamemodeClientSettings()); // optional if you have client settings
+                });
                 fullyInit = true;
             }
             catch (Exception e)
@@ -51,25 +60,6 @@ namespace MyNamespace
                 Logger.LogError(e);
                 fullyInit = false;
             }
-        }
-
-        private void Menu_ctor(On.Menu.Menu.orig_ctor orig, Menu.Menu self, ProcessManager manager, ProcessManager.ProcessID ID)
-        {
-            orig(self, manager, ID);
-            if (self is ArenaOnlineLobbyMenu)
-            {
-                AddNewMode();
-            }
-        }
-
-        private void AddNewMode()
-        {
-
-            if (RainMeadow.RainMeadow.isArenaMode(out var arena))
-            {
-                arena.AddExternalGameModes(MyNewExternalArenaGameMode.MyGameModeName, new myNewGamemode());
-            }
-
         }
     }
 }
