@@ -43,7 +43,6 @@ namespace MyNamespace
 
             try
             {
-
                 On.Menu.Menu.ctor += Menu_ctor;
                 fullyInit = true;
             }
@@ -65,7 +64,7 @@ namespace MyNamespace
 
         private void AddNewMode()
         {
-            
+
             if (RainMeadow.RainMeadow.isArenaMode(out var arena))
             {
                 arena.AddExternalGameModes(MyNewExternalArenaGameMode.MyGameModeName, new myNewGamemode());
@@ -87,9 +86,7 @@ namespace MyNamespace
 {
     public class MyCoolNewGameMode : ExternalArenaGameMode
     {
-
         public static ArenaSetup.GameTypeID MyGameModeName = new ArenaSetup.GameTypeID("MyGameModeName", register: false);
-        }
     }
 }
 ```
@@ -97,6 +94,7 @@ namespace MyNamespace
 (**NOTE**: Must match enum's value you set in `arena.registeredGameModes`)
 6. 
 ```csharp
+// in the class MyCoolNewGameMode
 public override ArenaSetup.GameTypeID GetGameModeId
 {
     get
@@ -139,30 +137,38 @@ internal class MyCoolLobbyData : OnlineResource.ResourceData
 
         internal class State : ResourceDataState
         {
-            [OnlineField group="myGroup"]
+            [OnlineField(group = "myGroup")]
             public bool isInGame;
+
+            public State() { }
+            
+            // takes the current value in the State
+            public State(MyCoolLobbyData data, OnlineResource onlineResource) 
             {
                 ArenaOnlineGameMode arena = (onlineResource as Lobby).gameMode as ArenaOnlineGameMode;
                 bool myMode = MyCoolNewGameMode.isMyCoolGameMode(arena, out var coolMode);
-                if (myMode) {
-                            
-                isInGame = coolMode.isInGame;
+                if (myMode)
+                {      
+                    this.isInGame = coolMode.isInGame;
                 }   
-
-            public override void ReadTo(OnlineResource.ResourceData data, OnlineResource resource)
+            }
+            
+            // read the value in the State and applies it
+            public override void ReadTo(OnlineResource.ResourceData data, OnlineResource resource) 
             {
                 var lobby = (resource as Lobby);
-                  bool myMode = MyCoolNewGameMode.isMyCoolGameMode(arena, out var coolMode);
-                  if (myMode) {
-                coolMode.isInGame = isInGame;
-                  }
+                bool myMode = MyCoolNewGameMode.isMyCoolGameMode(arena, out var coolMode);
+                if (myMode)
+                {
+                    coolMode.isInGame = this.isInGame;
+                }
             }
 
-            public override Type GetDataType() => typeof(ArenaLobbyData);
+            public override Type GetDataType() => typeof(MyCoolLobbyData);
         }
     }
 ```
-### What's with the "group='myGroup"?
+### What's with the "group='myGroup'"?
 ```
 Field-groups are a way to organize fields in groups that each have that boolean flag for sent-or-skipped.
 
@@ -172,6 +178,7 @@ If any field in the field-group has changed, that entire field-group will be re-
 ```
 
 ```csharp
+// in the class MyCoolNewGameMode
  public override void ResourceAvailable(OnlineResource onlineResource)
  {
      base.ResourceAvailable(onlineResource);
@@ -201,17 +208,17 @@ Check [ArenaLobbyData](https://github.com/henpemaz/Rain-Meadow/blob/main/Arena/A
      {
          [OnlineField]
          public int someonesNumber;
+        
          public State() { }
-
          public State(MyClientSettings onlineEntity) : base()
          {
-             someonesNumber = onlineEntity.someonesNumber;
+             this.someonesNumber = onlineEntity.someonesNumber;
          }
 
          public override void ReadTo(OnlineEntity.EntityData entityData, OnlineEntity onlineEntity)
          {
              var avatarSettings = (MyClientSettings)entityData;
-             avatarSettings.someonesNumber = someonesNumber;
+             avatarSettings.someonesNumber = this.someonesNumber;
          }
 
          public override Type GetDataType() => typeof(MyClientSettings);
@@ -220,11 +227,11 @@ Check [ArenaLobbyData](https://github.com/henpemaz/Rain-Meadow/blob/main/Arena/A
 ```
 
 ```
-        public override void AddClientData()
-        {
-            clientSettings.AddData( new MyClientSettings());
-
-        }
+// in the class MyCoolNewGameMode
+public override void AddClientData()
+{
+    clientSettings.AddData( new MyClientSettings());
+}
 ```
 # UI
 
@@ -285,6 +292,80 @@ Leverage ExternalArenaGameMode's virtual functions
 
             return base.IconColor(arena, owner, customization, player);
         }
+```
+
+### Adding Slugcat Settings
+Slugcat Abilities Tab has support to add your custom settings for slugcats. First make your class from `SettingsPage`
+```csharp
+ public class MyCustomSettingsPage : SettingsPage
+ {
+      public OpTextBox mySlugcatFlightDurationTextBox;
+      public SimpleButton backButton;
+
+      public override string Name => "My Custom Name"; //this will appear on Select Settings Page
+
+      public MyCustomSettingsPage(Menu.Menu menu, MenuObject owner) : base(menu, owner)
+      {
+           mySlugcatFlightDurationTextBox = new(new Configurable<int>(myOptionsSave.Value), new Vector2(0, 0), 40);
+           mySlugcatFlightDurationTextBox.OnValueUpdate += (UIconfig config, string lastValue, string newValue) =>
+           {
+                //Doesnt have to appear here, just make sure lobby data gets changed accordingly somewhere
+                MyCoolLobbyData data = GetMyLobbyData();
+                data.mySlugcatFlightDuration = mySlugcatFlightDurationTextBox.valueInt;
+           }; 
+      }
+      public override void SelectAndCreateBackButtons(SettingsPage? previousSettingPage, bool forceSelectedObject)
+      {
+           if (backButton == null)
+           {
+               //Signal Text HAS to be OnlineSlugcatAbilitiesInterface.BACKTOSELECT to return to Select Settings Page
+               backButton = new SimpleButton(menu, this, menu.Translate("BACK"), OnlineSlugcatAbilitiesInterface.BACKTOSELECT, new Vector2(30, 30), new Vector2(80, 30));
+               AddObjects(backButton);
+           }
+           if (forceSelectedObject)
+               menu.selectedObject = backButton;
+      }
+      public override void CallForSync()
+      {
+            MyCoolLobbyData data = GetMyLobbyData();
+            data.mySlugcatFlightDuration = mySlugcatFlightDurationTextBox.valueInt;
+      }
+      public override void SaveInterfaceOptions()
+      {
+           myOptionsSave.mySlugcatFlightDuration.Value = mySlugcatFlightDurationTextBox.valueInt;
+      }
+      public override void Update()
+      {
+           MyCoolLobbyData data = GetMyLobbyData();
+           mySlugcatFlightDurationTextBox.greyedOut = SettingsDisabled
+           if (!mySlugcatFlightDurationTextBox.held)
+                  mySlugcatFlightDurationTextBox.valueInt = data.mySlugcatFlightDuration;
+      }
+}
+```
+You can check `OnlineSlugcatAbilitiesInterface.MSCSettings, OnlineSlugcatAbilitiesInterface.WatcherSettings` [here](https://github.com/henpemaz/Rain-Meadow/blob/main/Menu/Components/OnlineSlugcatAbilitiesInterface.cs) as an example
+
+Once you made the class, you can start hooking
+```csharp
+public void ApplyHooks()
+{
+      new Hook(typeof(OnlineSlugcatAbilitiesInterface).GetMethod("AddAllSettings"), OnlineSlugcatAbilitiesInterface_AddAllSettings);
+
+      new Hook(typeof(ArenaMainLobbyPage).GetMethod("ShouldOpenSlugcatAbilitiesTab"), ArenaMainLobbyPage_ShouldOpenSlugcatAbilitiesTab);
+}
+public void OnlineSlugcatAbilitiesInterface_AddAllSettings(Action<OnlineSlugcatAbilitiesInterface, string> orig, OnlineSlugcatAbilitiesInterface self, string painCatName)
+ {
+      orig(self, painCatName);
+      MyCustomSettingsPage myCustomSettings = new(self.menu, self);
+      self.AddSettingsTab(myCustomSettings);
+ }
+
+//This hook is optional. Slugcat Abilities Tab only appears when MSC or Watcher is on
+//Add this if you want your settings to appear without MSC AND Watcher
+public bool ArenaMainLobbyPage_ShouldOpenSlugcatAbilitiesTab(Func<ArenaMainLobbyPage, bool> orig, ArenaMainLobbyPage self)
+ {
+    return true;
+ }
 ```
 
 ## Beyond
